@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Typography,
   Grid,
@@ -20,52 +21,12 @@ import {
   Share,
   LocalOffer,
 } from '@mui/icons-material';
+import { useEvents } from '../hooks/useRedux';
 
-const FeaturedEvents = ({ setCurrentPage }) => {
-  const featuredEvents = [
-    {
-      id: 1,
-      title: "Festival Jazz & Blues",
-      date: "2025-07-15",
-      location: "Salle Pleyel, Paris",
-      price: "45€",
-      originalPrice: "60€",
-      image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
-      category: "Concert",
-      rating: 4.8,
-      attendees: 1200,
-      artist: "Miles Davis Tribute",
-      description: "Une soirée exceptionnelle dédiée aux légendes du jazz"
-    },
-    {
-      id: 2,
-      title: "Théâtre Classique",
-      date: "2025-07-20",
-      location: "Comédie Française, Paris",
-      price: "35€",
-      originalPrice: "45€",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
-      category: "Théâtre",
-      rating: 4.6,
-      attendees: 800,
-      artist: "Troupe Molière",
-      description: "Une adaptation moderne des grands classiques"
-    },
-    {
-      id: 3,
-      title: "Conférence Tech 2025",
-      date: "2025-08-05",
-      location: "Palais des Congrès, Paris",
-      price: "89€",
-      originalPrice: "120€",
-      image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
-      category: "Conférence",
-      rating: 4.9,
-      attendees: 2000,
-      artist: "Leaders Tech",
-      description: "Les dernières innovations technologiques"
-    }
-  ];
+const FeaturedEvents = () => {
+  const navigate = useNavigate();
+  const { featuredEvents, isLoading } = useEvents();
+
   return (
     <Box sx={{ py: 6 }}>
       <Box sx={{ textAlign: 'center', mb: 6 }}>
@@ -157,24 +118,21 @@ const FeaturedEvents = ({ setCurrentPage }) => {
                   >
                     <Share fontSize="small" />
                   </Button>
+                </Box>                {/* Chip de réduction - adapté pour le format Redux */}
+                <Box sx={{ position: 'absolute', bottom: 16, left: 16 }}>
+                  <Chip
+                    icon={<LocalOffer />}
+                    label="Populaire"
+                    color="error"
+                    size="small"
+                    sx={{ 
+                      backgroundColor: '#ef4444',
+                      color: 'white',
+                      fontWeight: 600
+                    }}
+                  />
                 </Box>
-                {event.originalPrice && (
-                  <Box sx={{ position: 'absolute', bottom: 16, left: 16 }}>
-                    <Chip
-                      icon={<LocalOffer />}
-                      label={`-${Math.round(((parseFloat(event.originalPrice.replace('€', '')) - parseFloat(event.price.replace('€', ''))) / parseFloat(event.originalPrice.replace('€', ''))) * 100)}%`}
-                      color="error"
-                      size="small"
-                      sx={{ 
-                        backgroundColor: '#ef4444',
-                        color: 'white',
-                        fontWeight: 600
-                      }}
-                    />
-                  </Box>
-                )}
-              </Box>              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
+              </Box>              <CardContent sx={{ p: 3 }}>                <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
                   <Typography 
                     variant="h6" 
                     sx={{ 
@@ -192,9 +150,9 @@ const FeaturedEvents = ({ setCurrentPage }) => {
                     {event.title}
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Rating value={event.rating} precision={0.1} size="small" readOnly />
+                    <Rating value={4.5} precision={0.1} size="small" readOnly />
                     <Typography variant="body2" sx={{ color: '#6b7280' }}>
-                      {event.rating}
+                      4.5
                     </Typography>
                   </Box>
                 </Box>
@@ -239,45 +197,30 @@ const FeaturedEvents = ({ setCurrentPage }) => {
                     >
                       {event.location}
                     </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', alignItems: 'center', color: '#6b7280' }}>
+                  </Box>                  <Box sx={{ display: 'flex', alignItems: 'center', color: '#6b7280' }}>
                     <Person fontSize="small" sx={{ mr: 1 }} />
                     <Typography variant="body2">
-                      {event.attendees.toLocaleString()} personnes intéressées
+                      {event.availableTickets} places disponibles
                     </Typography>
                   </Box>
                 </Box>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 2 }}>                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#059669' }}>
-                      {event.price}
+                      {event.price}€
                     </Typography>
-                    {event.originalPrice && (
-                      <Typography
-                        variant="body2"
-                        sx={{ 
-                          color: '#6b7280',
-                          textDecoration: 'line-through'
-                        }}
-                      >
-                        {event.originalPrice}
-                      </Typography>
-                    )}
                   </Box>
                   <Avatar sx={{ width: 32, height: 32, backgroundColor: '#dbeafe', color: '#2563eb', fontSize: '0.75rem' }}>
-                    {event.artist.charAt(0)}
+                    {event.organizer.charAt(0)}
                   </Avatar>
                 </Box>
               </CardContent>
 
-              <CardActions sx={{ p: 3, pt: 0 }}>
-                <Button
+              <CardActions sx={{ p: 3, pt: 0 }}>                <Button
                   variant="contained"
                   fullWidth
                   size="large"
-                  onClick={() => setCurrentPage('booking')}
+                  onClick={() => navigate(`/booking/${event.id}`)}
                   sx={{
                     background: 'linear-gradient(45deg, #3b82f6, #8b5cf6)',
                     py: 1.5,

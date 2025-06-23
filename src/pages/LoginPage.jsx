@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Container,
   Paper,
@@ -15,6 +16,7 @@ import {
   Alert,
   Checkbox,
   FormControlLabel,
+  CircularProgress,
 } from '@mui/material';
 import {
   Visibility,
@@ -27,8 +29,15 @@ import {
   Email,
   Lock,
 } from '@mui/icons-material';
+import { useAuth, useAppDispatch } from '../hooks/useRedux';
+import { loginUser, socialLogin } from '../store/thunks/authThunks';
+import { clearError } from '../store/slices/authSlice';
 
-const LoginPage = ({ setCurrentPage }) => {
+const LoginPage = () => {
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { isLoading, error, isAuthenticated } = useAuth();
+  
   const [activeTab, setActiveTab] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -37,11 +46,24 @@ const LoginPage = ({ setCurrentPage }) => {
     username: '',
     rememberMe: false,
   });
-  const [errors, setErrors] = useState({});
+  const [validationErrors, setValidationErrors] = useState({});
+  // Rediriger si l'utilisateur est déjà connecté
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
 
+  // Nettoyer les erreurs au démontage
+  useEffect(() => {
+    return () => {
+      dispatch(clearError());
+    };
+  }, [dispatch]);
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
-    setErrors({});
+    setValidationErrors({});
+    dispatch(clearError());
   };
 
   const handleChange = (e) => {
@@ -51,14 +73,13 @@ const LoginPage = ({ setCurrentPage }) => {
       [name]: e.target.type === 'checkbox' ? checked : value
     });
     // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors({
-        ...errors,
+    if (validationErrors[name]) {
+      setValidationErrors({
+        ...validationErrors,
         [name]: ''
       });
     }
   };
-
   const validateForm = () => {
     const newErrors = {};
     
@@ -83,22 +104,36 @@ const LoginPage = ({ setCurrentPage }) => {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validateForm();
     
     if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+      setValidationErrors(newErrors);
       return;
     }
     
-    console.log('Connexion:', activeTab === 0 ? 'client' : 'admin', formData);
-    // Simulate login process here
+    const credentials = {
+      email: activeTab === 0 ? formData.email : `${formData.username}@admin.com`,
+      password: formData.password,
+      isAdmin: activeTab === 1,
+    };
+    
+    try {
+      await dispatch(loginUser(credentials)).unwrap();
+      // La redirection se fait automatiquement via useEffect
+    } catch (error) {
+      // L'erreur est gérée automatiquement par Redux
+    }
+  };
+  const handleSocialLogin = async (provider) => {
+    try {
+      await dispatch(socialLogin({ platform: provider, token: 'mock-token' })).unwrap();
+    } catch (error) {
+      console.error('Erreur de connexion sociale:', error);
+    }
   };
 
-  const handleSocialLogin = (provider) => {
-    console.log(`Connexion avec ${provider}`);
-  };
   return (
     <Box sx={{ 
       minHeight: '100vh', 
@@ -180,9 +215,8 @@ const LoginPage = ({ setCurrentPage }) => {
                 name="email"
                 label="Adresse email"
                 value={formData.email}
-                onChange={handleChange}
-                error={!!errors.email}
-                helperText={errors.email}                InputProps={{
+                onChange={handleChange}                error={!!validationErrors.email}
+                helperText={validationErrors.email}InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
                       <Email sx={{ color: '#9ca3af' }} />
@@ -201,9 +235,8 @@ const LoginPage = ({ setCurrentPage }) => {
                 name="username"
                 label="Nom d'utilisateur"
                 value={formData.username}
-                onChange={handleChange}
-                error={!!errors.username}
-                helperText={errors.username}
+                onChange={handleChange}                error={!!validationErrors.username}
+                helperText={validationErrors.username}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -224,9 +257,8 @@ const LoginPage = ({ setCurrentPage }) => {
               name="password"
               label="Mot de passe"
               value={formData.password}
-              onChange={handleChange}
-              error={!!errors.password}
-              helperText={errors.password}
+              onChange={handleChange}              error={!!validationErrors.password}
+              helperText={validationErrors.password}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -274,8 +306,14 @@ const LoginPage = ({ setCurrentPage }) => {
                 }}
               >
                 Mot de passe oublié ?
-              </Link>
-            </Box>
+              </Link>            </Box>
+
+            {/* Error Alert */}
+            {error && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {error}
+              </Alert>
+            )}
 
             {/* Submit Button */}
             <Button
@@ -283,6 +321,7 @@ const LoginPage = ({ setCurrentPage }) => {
               fullWidth
               variant="contained"
               size="large"
+              disabled={isLoading}
               sx={{
                 background: 'linear-gradient(45deg, #3b82f6, #8b5cf6)',
                 py: 1.5,
@@ -294,10 +333,20 @@ const LoginPage = ({ setCurrentPage }) => {
                   background: 'linear-gradient(45deg, #2563eb, #7c3aed)',
                   transform: 'translateY(-1px)',
                 },
+                '&:disabled': {
+                  background: '#9ca3af',
+                },
                 transition: 'all 0.2s ease',
               }}
             >
-              Se connecter
+              {isLoading ? (
+                <>
+                  <CircularProgress size={20} sx={{ mr: 1, color: 'white' }} />
+                  Connexion en cours...
+                </>
+              ) : (
+                'Se connecter'
+              )}
             </Button>
           </Box>          {/* Divider */}
           <Box sx={{ my: 3 }}>
@@ -364,12 +413,10 @@ const LoginPage = ({ setCurrentPage }) => {
           </Box>
 
           {/* Sign Up Link */}
-          <Box sx={{ textAlign: 'center', mt: 4 }}>
-            <Typography variant="body2" sx={{ color: '#6b7280' }}>
-              Pas encore de compte ?{' '}
-              <Link
-                href="#"
-                onClick={() => setCurrentPage('signup')}
+          <Box sx={{ textAlign: 'center', mt: 4 }}>            <Typography variant="body2" sx={{ color: '#6b7280' }}>
+              Pas encore de compte ?{' '}              <Link
+                component={RouterLink}
+                to="/signup"
                 sx={{ 
                   color: '#3b82f6', 
                   fontWeight: 600,

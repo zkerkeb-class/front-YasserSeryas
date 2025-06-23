@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Container,
   Paper,
@@ -35,7 +36,8 @@ import {
   CheckCircle,
 } from '@mui/icons-material';
 
-const SignupPage = ({ setCurrentPage }) => {
+const SignupPage = () => {
+  const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -154,7 +156,7 @@ const SignupPage = ({ setCurrentPage }) => {
     // Simulate successful registration
     setTimeout(() => {
       alert('Inscription réussie ! Vous pouvez maintenant vous connecter.');
-      setCurrentPage('login');
+      navigate('/login');
     }, 1000);
   };
 
@@ -569,10 +571,9 @@ const SignupPage = ({ setCurrentPage }) => {
           {/* Login Link */}
           <Box sx={{ textAlign: 'center' }}>
             <Typography variant="body2" sx={{ color: '#6b7280' }}>
-              Vous avez déjà un compte ?{' '}
-              <Link
-                href="#"
-                onClick={() => setCurrentPage('login')}
+              Vous avez déjà un compte ?{' '}              <Link
+                component={RouterLink}
+                to="/login"
                 sx={{ 
                   color: '#3b82f6', 
                   fontWeight: 600,

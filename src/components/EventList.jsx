@@ -33,8 +33,10 @@ import {
   Sort,
   LocalOffer,
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 
 const EventList = ({ filters }) => {
+  const navigate = useNavigate();
   const [events] = useState([
     {
       id: 1,
@@ -311,6 +313,7 @@ const EventList = ({ filters }) => {
                   </CardContent>
                   <CardActions className="p-4 pt-0">
                     <Button
+                     onClick={() => navigate(`/booking/${event.id}`)}
                       variant="contained"
                       fullWidth
                       className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 py-2 rounded-lg"
