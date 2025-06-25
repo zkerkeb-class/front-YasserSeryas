@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { signupUser, socialLogin } from '../store/thunks/authThunks';
 import {
   Container,
   Paper,
@@ -19,6 +21,7 @@ import {
   Grid,
   Avatar,
   Chip,
+  CircularProgress,
 } from '@mui/material';
 import {
   Visibility,
@@ -38,6 +41,8 @@ import {
 
 const SignupPage = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { loading, error } = useSelector((state) => state.auth);
   const [activeStep, setActiveStep] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -102,7 +107,7 @@ const SignupPage = () => {
         } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
           newErrors.email = 'L\'email n\'est pas valide';
         }
-        if (!formData.phone) newErrors.phone = 'Le téléphone est requis';
+        // if (!formData.phone) newErrors.phone = 'Le téléphone est requis';
         break;
       
       case 1:
@@ -143,7 +148,7 @@ const SignupPage = () => {
     setActiveStep((prevStep) => prevStep - 1);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const stepErrors = validateStep(activeStep);
     
@@ -152,16 +157,34 @@ const SignupPage = () => {
       return;
     }
     
-    console.log('Inscription:', formData);
-    // Simulate successful registration
-    setTimeout(() => {
+    try {
+      await dispatch(signupUser({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+         phoneNumber: formData.phone, // Optionnel si vous voulez le stocker
+         location: formData.location, // Optionnel si vous voulez le stocker
+      })).unwrap();
+      
+       setTimeout(() => {
       alert('Inscription réussie ! Vous pouvez maintenant vous connecter.');
+      }, 1000);
+      // Redirection vers la page d'accueil après inscription réussie
       navigate('/login');
-    }, 1000);
+    } catch (error) {
+      console.error('Erreur lors de l\'inscription:', error);
+      // L'erreur est déjà gérée par le thunk et affichée via snackbar
+    }
   };
 
-  const handleSocialSignup = (provider) => {
-    console.log(`Inscription avec ${provider}`);
+  const handleSocialSignup = async (provider) => {
+    try {
+      await dispatch(socialLogin({ platform: provider })).unwrap();
+    } catch (error) {
+      console.error(`Erreur lors de l'inscription avec ${provider}:`, error);
+      // L'erreur est déjà gérée par le thunk et affichée via snackbar
+    }
   };
 
   const renderStepContent = (step) => {
@@ -226,7 +249,7 @@ const SignupPage = () => {
               }}
             />
             
-            <TextField
+           <TextField
               fullWidth
               name="phone"
               label="Téléphone"
@@ -241,7 +264,7 @@ const SignupPage = () => {
                   </InputAdornment>
                 ),
               }}
-            />
+            /> 
           </Box>
         );
 
@@ -324,7 +347,7 @@ const SignupPage = () => {
               }}
             />
             
-            <Box>
+            {/* <Box>
               <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
                 Centres d'intérêt
               </Typography>
@@ -340,7 +363,7 @@ const SignupPage = () => {
                   />
                 ))}
               </Box>
-            </Box>
+            </Box> */}
             
             <Box>
               <FormControlLabel
@@ -469,7 +492,8 @@ const SignupPage = () => {
                   type="submit"
                   variant="contained"
                   size="large"
-                  startIcon={<CheckCircle />}
+                  disabled={loading}
+                  startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <CheckCircle />}
                   sx={{
                     background: 'linear-gradient(45deg, #16a34a, #059669)',
                     px: 4,
@@ -480,7 +504,7 @@ const SignupPage = () => {
                     },
                   }}
                 >
-                  Créer mon compte
+                  {loading ? 'Création en cours...' : 'Créer mon compte'}
                 </Button>
               ) : (
                 <Button
@@ -505,7 +529,7 @@ const SignupPage = () => {
           </Box>
 
           {/* Social Login */}
-          {activeStep === 0 && (
+          {/* {activeStep === 0 && (
             <>
               <Box sx={{ my: 4 }}>
                 <Divider>
@@ -566,7 +590,7 @@ const SignupPage = () => {
                 </Button>
               </Box>
             </>
-          )}
+          )} */}
 
           {/* Login Link */}
           <Box sx={{ textAlign: 'center' }}>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   AppBar,
@@ -31,10 +31,21 @@ const Header = ({ isAuthenticated: propIsAuthenticated }) => {
   const { currentBooking } = useBooking();
   const [anchorEl, setAnchorEl] = React.useState(null);
 
-  // Utiliser l'authentification de Redux ou celle passée en props
+  // Debug: Afficher l'état d'authentification
+  useEffect(() => {
+    console.log('Header - État d\'authentification:', {
+      isAuthenticated,
+      user,
+      propIsAuthenticated
+    });
+  }, [isAuthenticated, user, propIsAuthenticated]);
+
+  useEffect(() => {
+    document.title = `Book My Event - ${location.pathname === '/' ? 'Accueil' : location.pathname.replace('/', '')}`;
+  }, [location.pathname]);
+
   const userIsAuthenticated = isAuthenticated || propIsAuthenticated;
 
-  // Ne pas afficher le header sur les pages login/signup
   const hideHeader = location.pathname === '/login' || location.pathname === '/signup';
   
   if (hideHeader) {
@@ -60,23 +71,20 @@ const Header = ({ isAuthenticated: propIsAuthenticated }) => {
     { key: '/events', label: 'Événements', icon: <Event /> },
   ];
 
-  // Calculer le nombre d'articles dans le panier depuis Redux
   const cartCount = currentBooking.tickets.reduce((total, ticket) => total + ticket.quantity, 0);
 
   return (
     <AppBar 
       position="fixed" 
-      className="bg-white shadow-lg border-b border-gray-200"
       elevation={0}
       sx={{ bgcolor: 'white', color: 'text.primary' }}
     >
       <Container maxWidth="xl">
         <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
-          {/* Logo - À gauche */}          <Typography
+          <Typography
             variant="h5"
             component={Link}
             to="/"
-            className="font-bold text-primary-600 cursor-pointer"
             sx={{ 
               background: 'linear-gradient(45deg, #0ea5e9, #8b5cf6)',
               WebkitBackgroundClip: 'text',
@@ -88,10 +96,9 @@ const Header = ({ isAuthenticated: propIsAuthenticated }) => {
             Book My Event
           </Typography>
 
-          {/* Tous les éléments à droite dans un seul conteneur */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {/* Navigation */}
-            {menuItems.map((item) => (              <Button
+            {menuItems.map((item) => (
+              <Button
                 key={item.key}
                 component={Link}
                 to={item.key}
@@ -111,8 +118,9 @@ const Header = ({ isAuthenticated: propIsAuthenticated }) => {
                 }}
               >
                 {item.label}
-              </Button>))}
-              {/* Authentification */}
+              </Button>
+            ))}
+
             {!userIsAuthenticated ? (
               <>
                 <Button
@@ -172,7 +180,7 @@ const Header = ({ isAuthenticated: propIsAuthenticated }) => {
                     },
                   }}
                 >
-                  {user?.name || 'Mon compte'}
+                  {user?.name || user?.user?.lastName || 'Mon compte'}
                 </Button>
                 <Menu
                   anchorEl={anchorEl}
@@ -186,7 +194,8 @@ const Header = ({ isAuthenticated: propIsAuthenticated }) => {
                     vertical: 'top',
                     horizontal: 'right',
                   }}
-                >                  <MenuItem onClick={() => { handleMenuClose(); navigate('/admin'); }}>
+                >
+                  <MenuItem onClick={() => { handleMenuClose(); navigate('/admin'); }}>
                     <AccountCircle sx={{ mr: 1 }} />
                     Mon profil
                   </MenuItem>
@@ -198,7 +207,6 @@ const Header = ({ isAuthenticated: propIsAuthenticated }) => {
               </>
             )}
 
-            {/* Cart */}
             <Box sx={{ ml: 2 }}>
               <Badge
                 badgeContent={cartCount}

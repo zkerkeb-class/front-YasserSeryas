@@ -32,6 +32,7 @@ import {
 import { useAuth, useAppDispatch } from '../hooks/useRedux';
 import { loginUser, socialLogin } from '../store/thunks/authThunks';
 import { clearError } from '../store/slices/authSlice';
+import { showSnackbar } from '../store/slices/uiSlice';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -60,6 +61,22 @@ const LoginPage = () => {
       dispatch(clearError());
     };
   }, [dispatch]);
+
+  // Gérer les erreurs OAuth depuis les paramètres URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const oauthError = urlParams.get('error');
+    
+    if (oauthError) {
+      dispatch(showSnackbar({
+        message: decodeURIComponent(oauthError),
+        severity: 'error'
+      }));
+      // Nettoyer l'URL
+      window.history.replaceState({}, '', '/login');
+    }
+  }, [dispatch]);
+
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
     setValidationErrors({});
@@ -128,9 +145,15 @@ const LoginPage = () => {
   };
   const handleSocialLogin = async (provider) => {
     try {
-      await dispatch(socialLogin({ platform: provider, token: 'mock-token' })).unwrap();
+      const result = await dispatch(socialLogin({ platform: provider })).unwrap();
+      
+      if (result.redirected) {
+        // La redirection a eu lieu, pas besoin de faire autre chose
+        console.log(`Redirection vers ${provider} OAuth`);
+      }
     } catch (error) {
       console.error('Erreur de connexion sociale:', error);
+      // L'erreur est déjà gérée par Redux (snackbar)
     }
   };
 
@@ -363,7 +386,7 @@ const LoginPage = () => {
               fullWidth
               variant="outlined"
               startIcon={<Google />}
-              onClick={() => handleSocialLogin('Google')}
+              onClick={() => handleSocialLogin('google')}
               sx={{
                 borderColor: '#e5e7eb',
                 color: '#374151',
@@ -376,7 +399,7 @@ const LoginPage = () => {
             >
               Continuer avec Google
             </Button>
-            <Button
+            {/* <Button
               fullWidth
               variant="outlined"
               startIcon={<Facebook />}
@@ -409,7 +432,7 @@ const LoginPage = () => {
               }}
             >
               Continuer avec GitHub
-            </Button>
+            </Button> */}
           </Box>
 
           {/* Sign Up Link */}
