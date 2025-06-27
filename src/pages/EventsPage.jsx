@@ -27,7 +27,7 @@ const EventsPage = () => {
           <Link
             underline="hover"
             color="inherit"
-            href="#"
+            href="/"
             sx={{ display: 'flex', alignItems: 'center' }}
           >
             <Home sx={{ mr: 0.5 }} fontSize="small" />

@@ -1,15 +1,15 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
   user: null,
   isAuthenticated: false,
   isLoading: false,
   error: null,
-  loginMode: 'login', // 'login' or 'signup'
+  loginMode: "login", // 'login' or 'signup'
 };
 
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState,
   reducers: {
     loginStart: (state) => {
@@ -21,15 +21,18 @@ const authSlice = createSlice({
       state.isAuthenticated = true;
       state.user = action.payload;
       state.error = null;
-      
+      console.log("Login successful:", action.payload);
       // Sauvegarder dans localStorage
-      if (action.payload.token) {
-        localStorage.setItem('authToken', action.payload.token);
-        localStorage.setItem('userData', JSON.stringify({
-          name: action.payload.name,
-          email: action.payload.email,
-          role: action.payload.role
-        }));
+      if (action.payload.token && action.payload.provider === "local") {
+        localStorage.setItem("authToken", action.payload.token);
+        localStorage.setItem(
+          "userData",
+          JSON.stringify({
+            name: action.payload.name,
+            email: action.payload.email,
+            role: action.payload.role,
+          })
+        );
       }
     },
     loginFailure: (state, action) => {
@@ -47,10 +50,10 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.user = null;
       state.error = null;
-      
+
       // Sauvegarder dans localStorage
       if (action.payload.token) {
-        localStorage.setItem('authToken', action.payload.token);
+        localStorage.setItem("authToken", action.payload.token);
         // localStorage.setItem('userData', JSON.stringify({
         //   id: action.payload.id,
         //   name: action.payload.name,
@@ -67,11 +70,11 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.user = null;
       state.error = null;
-      
+
       // Nettoyer localStorage
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('userData');
-      localStorage.removeItem('redirectAfterAuth');
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("userData");
+      localStorage.removeItem("redirectAfterAuth");
     },
     setLoginMode: (state, action) => {
       state.loginMode = action.payload;

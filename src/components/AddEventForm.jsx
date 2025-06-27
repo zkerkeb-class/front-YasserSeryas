@@ -20,9 +20,14 @@ const AddEventForm = ({ onClose }) => {
     date: '',
     time: '',
     location: {
-      address: '',
-      city: '',
-      country: 'France'
+      address: {
+        street: '',
+        city: '',
+      postalCode: '',
+      country: 'France',
+        },
+   
+
     },
     category: '',
     totalCapacity: '',
@@ -42,34 +47,42 @@ const AddEventForm = ({ onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    
-    if (name.includes('location.')) {
-      const locationField = name.split('.')[1];
-      setEventData(prev => ({
-        ...prev,
-        location: {
-          ...prev.location,
-          [locationField]: value
-        }
-      }));
-    } else {
-      setEventData(prev => ({
-        ...prev,
-        [name]: type === 'checkbox' ? checked : value
-      }));
+ const handleChange = (e) => {
+  const { name, value, type, checked } = e.target;
+
+  // Pour les cases à cocher
+  const fieldValue = type === 'checkbox' ? checked : value;
+
+  // Gère les champs imbriqués avec la notation "a.b.c"
+  const keys = name.split('.');
+  setEventData(prev => {
+    let updated = { ...prev };
+    let obj = updated;
+    for (let i = 0; i < keys.length - 1; i++) {
+      // Crée l'objet intermédiaire si besoin
+      obj[keys[i]] = { ...obj[keys[i]] };
+      obj = obj[keys[i]];
     }
-  };
+    obj[keys[keys.length - 1]] = fieldValue;
+    return updated;
+  });
+};
+
 
   const formatEventDataForAPI = () => {
     const formattedData = {
       // Données de l'événement
-      title: eventData.title,
+      name: eventData.title,
       description: eventData.description,
       startDate: new Date(`${eventData.date}T${eventData.time}`).toISOString(),
-      endDate: new Date(`${eventData.date}T${eventData.time}`).toISOString(), // Même date/heure pour simplifier
-      location: eventData.location,
+      endDate: new Date(`${eventData.endDate}T${eventData.time}`).toISOString(), // Même date/heure pour simplifier
+location: {
+    ...eventData.location,
+    address: {
+      ...eventData.location.address
+      
+    }
+  },
       category: eventData.category,
       totalCapacity: parseInt(eventData.totalCapacity),
       
@@ -80,50 +93,45 @@ const AddEventForm = ({ onClose }) => {
         currency: eventData.currency,
         maxPerPurchase: parseInt(eventData.maxPerPurchase),
         saleStartDate: eventData.saleStartDate || new Date().toISOString(),
-        saleEndDate: eventData.saleEndDate || null
+        saleEndDate: new Date(`${eventData.endDate}T${eventData.time}`).toISOString() || null
       })
     };
 
     return formattedData;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setError('');
 
-    try {
-      const formattedData = formatEventDataForAPI();
-      
-      // Appel à votre API
-      const response = await fetch('/api/events', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}` // Ajustez selon votre auth
-        },
-        body: JSON.stringify(formattedData)
-      });
+  try {
+    const formattedData = formatEventDataForAPI();
+    
+    // Appel à l'API avec l'URL complète
+    const response = await fetch('http://localhost:3000/api/events', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+      },
+      body: JSON.stringify(formattedData)
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erreur lors de la création de l\'événement');
-      }
-
-      const result = await response.json();
-      console.log('Événement créé avec succès:', result);
-      
-      // Afficher un message de succès si désiré
-      alert(`Événement "${result.title}" créé avec succès ! ${eventData.createBasicTicket ? 'Un ticket "Standard" a été automatiquement ajouté.' : ''}`);
-      
-      onClose();
-    } catch (error) {
-      console.error('Erreur:', error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Erreur lors de la création de l\'événement');
     }
-  };
+
+    const result = await response.json();
+    alert(`Événement "${result.title}" créé avec succès ! ${eventData.createBasicTicket ? 'Un ticket "Standard" a été automatiquement ajouté.' : ''}`);
+    onClose();
+  } catch (error) {
+    setError(error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50">
@@ -178,6 +186,17 @@ const AddEventForm = ({ onClose }) => {
               InputLabelProps={{ shrink: true }}
               variant="outlined"
             />
+             <TextField
+              label="Date de fin"
+              name="endDate"
+              type="date"
+              value={eventData.endDate}
+              onChange={handleChange}
+              fullWidth
+              required
+              InputLabelProps={{ shrink: true }}
+              variant="outlined"
+            />
             <TextField
               label="Heure"
               name="time"
@@ -193,10 +212,20 @@ const AddEventForm = ({ onClose }) => {
 
           {/* Localisation */}
           <Box className="flex gap-4">
+             <TextField
+              label="Nom du lieu"
+              name="location.name"
+              value={eventData.location.name}
+              onChange={handleChange}
+              fullWidth
+              required
+              variant="outlined"
+              placeholder="123 rue de la Paix"
+            />
             <TextField
               label="Adresse"
-              name="location.address"
-              value={eventData.location.address}
+              name="location.address.street"
+              value={eventData.location.address.street}
               onChange={handleChange}
               fullWidth
               required
@@ -205,8 +234,18 @@ const AddEventForm = ({ onClose }) => {
             />
             <TextField
               label="Ville"
-              name="location.city"
-              value={eventData.location.city}
+              name="location.address.city"
+              value={eventData.location.address.city}
+              onChange={handleChange}
+              fullWidth
+              required
+              variant="outlined"
+              placeholder="Paris"
+            />
+              <TextField
+              label="Code postal"
+              name="location.address.postalCode"
+              value={eventData.location.address.postalCode}
               onChange={handleChange}
               fullWidth
               required
