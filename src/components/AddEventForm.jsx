@@ -18,16 +18,16 @@ const AddEventForm = ({ onClose }) => {
     title: '',
     description: '',
     date: '',
+    endDate: '',
     time: '',
     location: {
+      name: '',
       address: {
         street: '',
         city: '',
-      postalCode: '',
-      country: 'France',
-        },
-   
-
+        postalCode: '',
+        country: 'France',
+      },
     },
     category: '',
     totalCapacity: '',
@@ -46,28 +46,74 @@ const AddEventForm = ({ onClose }) => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // **NOUVEAUX ÉTATS pour la génération de description**
+  const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [descriptionError, setDescriptionError] = useState('');
 
- const handleChange = (e) => {
-  const { name, value, type, checked } = e.target;
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
 
-  // Pour les cases à cocher
-  const fieldValue = type === 'checkbox' ? checked : value;
+    // Pour les cases à cocher
+    const fieldValue = type === 'checkbox' ? checked : value;
 
-  // Gère les champs imbriqués avec la notation "a.b.c"
-  const keys = name.split('.');
-  setEventData(prev => {
-    let updated = { ...prev };
-    let obj = updated;
-    for (let i = 0; i < keys.length - 1; i++) {
-      // Crée l'objet intermédiaire si besoin
-      obj[keys[i]] = { ...obj[keys[i]] };
-      obj = obj[keys[i]];
+    // Gère les champs imbriqués avec la notation "a.b.c"
+    const keys = name.split('.');
+    setEventData(prev => {
+      let updated = { ...prev };
+      let obj = updated;
+      for (let i = 0; i < keys.length - 1; i++) {
+        // Crée l'objet intermédiaire si besoin
+        obj[keys[i]] = { ...obj[keys[i]] };
+        obj = obj[keys[i]];
+      }
+      obj[keys[keys.length - 1]] = fieldValue;
+      return updated;
+    });
+  };
+
+  // **NOUVELLE FONCTION pour générer la description**
+  const generateDescription = async () => {
+    if (!eventData.title.trim()) {
+      setDescriptionError('Veuillez saisir un titre avant de générer la description');
+      return;
     }
-    obj[keys[keys.length - 1]] = fieldValue;
-    return updated;
-  });
-};
 
+    setGeneratingDescription(true);
+    setDescriptionError('');
+
+    try {
+      const response = await fetch('http://localhost:5003/api/recommendations/generate-description', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: eventData.title
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.data && result.data.description) {
+        // Met à jour le champ description avec la valeur générée
+        setEventData(prev => ({
+          ...prev,
+          description: result.data.description
+        }));
+      } else {
+        throw new Error('Réponse invalide du serveur');
+      }
+    } catch (error) {
+      setDescriptionError(error.message);
+    } finally {
+      setGeneratingDescription(false);
+    }
+  };
 
   const formatEventDataForAPI = () => {
     const formattedData = {
@@ -75,14 +121,13 @@ const AddEventForm = ({ onClose }) => {
       name: eventData.title,
       description: eventData.description,
       startDate: new Date(`${eventData.date}T${eventData.time}`).toISOString(),
-      endDate: new Date(`${eventData.endDate}T${eventData.time}`).toISOString(), // Même date/heure pour simplifier
-location: {
-    ...eventData.location,
-    address: {
-      ...eventData.location.address
-      
-    }
-  },
+      endDate: new Date(`${eventData.endDate}T${eventData.time}`).toISOString(),
+      location: {
+        ...eventData.location,
+        address: {
+          ...eventData.location.address
+        }
+      },
       category: eventData.category,
       totalCapacity: parseInt(eventData.totalCapacity),
       
@@ -100,38 +145,38 @@ location: {
     return formattedData;
   };
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setError('');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-  try {
-    const formattedData = formatEventDataForAPI();
-    
-    // Appel à l'API avec l'URL complète
-    const response = await fetch('http://localhost:3000/api/events', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-      },
-      body: JSON.stringify(formattedData)
-    });
+    try {
+      const formattedData = formatEventDataForAPI();
+      
+      // Appel à l'API avec l'URL complète
+      const response = await fetch('http://localhost:3000/api/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify(formattedData)
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Erreur lors de la création de l\'événement');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erreur lors de la création de l\'événement');
+      }
+
+      const result = await response.json();
+      alert(`Événement "${result.title}" créé avec succès ! ${eventData.createBasicTicket ? 'Un ticket "Standard" a été automatiquement ajouté.' : ''}`);
+      onClose();
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
-
-    const result = await response.json();
-    alert(`Événement "${result.title}" créé avec succès ! ${eventData.createBasicTicket ? 'Un ticket "Standard" a été automatiquement ajouté.' : ''}`);
-    onClose();
-  } catch (error) {
-    setError(error.message);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50">
@@ -150,17 +195,44 @@ location: {
             📅 Informations de l'événement
           </Typography>
           
-          <TextField
-            label="Titre de l'événement"
-            name="title"
-            value={eventData.title}
-            onChange={handleChange}
-            fullWidth
-            required
-            variant="outlined"
-            placeholder="Ex: Festival Jazz 2025"
-          />
+          {/* **SECTION MODIFIÉE : Titre avec bouton de génération** */}
+          <Box className="flex gap-2 items-end">
+            <TextField
+              label="Titre de l'événement"
+              name="title"
+              value={eventData.title}
+              onChange={handleChange}
+              fullWidth
+              required
+              variant="outlined"
+              placeholder="Ex: Festival Jazz 2025"
+            />
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={generateDescription}
+              disabled={generatingDescription || !eventData.title.trim()}
+              sx={{ minWidth: '180px', height: '56px' }}
+            >
+              {generatingDescription ? (
+                <>
+                  <span className="animate-spin mr-2">⏳</span>
+                  Génération...
+                </>
+              ) : (
+                'Générer la description'
+              )}
+            </Button>
+          </Box>
+
+          {/* **NOUVEAU : Message d'erreur pour la génération** */}
+          {descriptionError && (
+            <Alert severity="error" className="mt-2">
+              {descriptionError}
+            </Alert>
+          )}
           
+          {/* **SECTION MODIFIÉE : Description avec état de chargement** */}
           <TextField
             label="Description"
             name="description"
@@ -171,7 +243,13 @@ location: {
             multiline
             minRows={3}
             variant="outlined"
-            placeholder="Décrivez votre événement..."
+            placeholder={generatingDescription ? "Génération de la description en cours..." : "Décrivez votre événement..."}
+            disabled={generatingDescription}
+            sx={{
+              '& .MuiInputBase-input': {
+                backgroundColor: generatingDescription ? '#f5f5f5' : 'transparent'
+              }
+            }}
           />
           
           <Box className="flex gap-4">
@@ -186,7 +264,7 @@ location: {
               InputLabelProps={{ shrink: true }}
               variant="outlined"
             />
-             <TextField
+            <TextField
               label="Date de fin"
               name="endDate"
               type="date"
@@ -212,7 +290,7 @@ location: {
 
           {/* Localisation */}
           <Box className="flex gap-4">
-             <TextField
+            <TextField
               label="Nom du lieu"
               name="location.name"
               value={eventData.location.name}
@@ -220,7 +298,7 @@ location: {
               fullWidth
               required
               variant="outlined"
-              placeholder="123 rue de la Paix"
+              placeholder="Centre des congrès"
             />
             <TextField
               label="Adresse"
@@ -232,6 +310,9 @@ location: {
               variant="outlined"
               placeholder="123 rue de la Paix"
             />
+          </Box>
+
+          <Box className="flex gap-4">
             <TextField
               label="Ville"
               name="location.address.city"
@@ -242,7 +323,7 @@ location: {
               variant="outlined"
               placeholder="Paris"
             />
-              <TextField
+            <TextField
               label="Code postal"
               name="location.address.postalCode"
               value={eventData.location.address.postalCode}
@@ -250,7 +331,7 @@ location: {
               fullWidth
               required
               variant="outlined"
-              placeholder="Paris"
+              placeholder="75001"
             />
           </Box>
 

@@ -46,12 +46,6 @@ const Header = ({ isAuthenticated: propIsAuthenticated }) => {
 
   const userIsAuthenticated = isAuthenticated || propIsAuthenticated;
 
-  const hideHeader = location.pathname === '/login' || location.pathname === '/signup';
-  
-  if (hideHeader) {
-    return null;
-  }
-
   const handleMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
   };

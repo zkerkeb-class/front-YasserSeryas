@@ -73,7 +73,7 @@ function AppContent() {
           <Box
             component="main"
             sx={{
-              pt: { xs: 9, sm: 10 }, // 72px = 9*8px (theme.spacing(9)), ajuste selon la hauteur du header
+              pt: { xs: 9, sm: 9 }, // 72px = 9*8px (theme.spacing(9)), ajuste selon la hauteur du header
             }}
           >
             <Routes>
