@@ -76,9 +76,7 @@ const AdminDashboard = () => {
   }, []);
 
   // Récupération des événements (seulement si organisateur ou admin)
-  useEffect(() => {
-    if (role === "organisateur" || role === "admin") {
-      const fetchEvents = async () => {
+  const fetchEvents = async () => {
         setLoadingEvents(true);
         setErrorEvents(null);
         try {
@@ -100,6 +98,9 @@ const AdminDashboard = () => {
           setLoadingEvents(false);
         }
       };
+  useEffect(() => {
+    if (role === "organisateur" || role === "admin") {
+      
 
       fetchEvents();
     }
@@ -285,7 +286,7 @@ const AdminDashboard = () => {
 
                 {showAddEvent && (
                   <Box sx={{ mt: 3 }}>
-                    <AddEventForm onClose={() => setShowAddEvent(false)} />
+                    <AddEventForm onClose={() => {setShowAddEvent(false); fetchEvents()}} />
                   </Box>
                 )}
 

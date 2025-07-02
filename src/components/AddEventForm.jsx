@@ -13,7 +13,7 @@ import Checkbox from '@mui/material/Checkbox';
 import Alert from '@mui/material/Alert';
 
 const AddEventForm = ({ onClose }) => {
-  const [eventData, setEventData] = useState({
+  const initialEventData = {
     // Informations de l'événement
     title: '',
     description: '',
@@ -42,7 +42,9 @@ const AddEventForm = ({ onClose }) => {
     saleStartDate: '',
     saleEndDate: '',
     createBasicTicket: true // Option pour créer ou non le ticket automatique
-  });
+  };
+  const [eventData, setEventData] = useState(initialEventData);
+  ;
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -169,8 +171,10 @@ const AddEventForm = ({ onClose }) => {
       }
 
       const result = await response.json();
-      alert(`Événement "${result.title}" créé avec succès ! ${eventData.createBasicTicket ? 'Un ticket "Standard" a été automatiquement ajouté.' : ''}`);
+      alert(`Événement "${result.name}" créé avec succès ! ${eventData.createBasicTicket ? 'Un ticket "Standard" a été automatiquement ajouté.' : ''}`);
       onClose();
+      setEventData(initialEventData);
+      
     } catch (error) {
       setError(error.message);
     } finally {
