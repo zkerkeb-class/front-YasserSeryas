@@ -16,6 +16,7 @@ import { useAuthPersistence } from "./hooks/useAuthPersistence";
 import Header from "./components/Header";
 import HomePage from "./pages/HomePage";
 import EventsPage from "./pages/EventsPage";
+import EventDetailPage from "./pages/EventDetailPage";
 import BookingPage from "./pages/BookingPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
@@ -79,6 +80,7 @@ function AppContent() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/events" element={<EventsPage />} />
+              <Route path="/events/:eventId" element={<EventDetailPage />} />
               <Route path="/booking" element={<BookingPage />} />
               <Route path="/booking/:eventId" element={<BookingPage />} />
               <Route
@@ -104,6 +106,7 @@ function AppContent() {
                   )
                 }
               />
+              <Route path="/event/:id" element={<EventDetailPage />} />
               {/* Route de fallback */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

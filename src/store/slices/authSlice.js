@@ -21,7 +21,6 @@ const authSlice = createSlice({
       state.isAuthenticated = true;
       state.user = action.payload;
       state.error = null;
-      console.log("Login successful:", action.payload);
       // Sauvegarder dans localStorage
       if (action.payload.token && action.payload.provider === "local") {
         localStorage.setItem("authToken", action.payload.token);

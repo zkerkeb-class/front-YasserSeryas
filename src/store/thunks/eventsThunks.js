@@ -4,6 +4,8 @@ import {
   fetchEventsSuccess,
   fetchEventsFailure,
   fetchFeaturedEventsSuccess,
+  setCurrentEvent,
+  setConfirmationNumber,
 } from '../slices/eventsSlice';
 import { showSnackbar } from '../slices/uiSlice';
 
@@ -186,15 +188,359 @@ export const fetchEventById = createAsyncThunk(
   'events/fetchEventById',
   async (eventId, { dispatch, rejectWithValue }) => {
     try {
+      dispatch(fetchEventsStart());
+      
+      // Essayer d'abord l'API réelle avec les données de pricing
+      try {
+        const response = await fetch(`http://localhost:3000/api/events/${eventId}/pricing`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Adapter les données selon le format de votre API avec pricing
+          const eventData = {
+            _id: data._id,
+            name: data.name,
+            description: data.description,
+            category: data.category,
+            startDate: data.startDate,
+            endDate: data.endDate,
+            location: data.location,
+            organizer: data.organizer,
+            images: data.images || [],
+            totalCapacity: data.totalCapacity,
+            remainingCapacity: data.remainingCapacity,
+            status: data.status,
+            isPublic: data.isPublic,
+            tags: data.tags || [],
+            ticketTypes: data.ticketTypes || [],
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+            
+            // Intégration des données de pricing
+            pricing: data.pricing || {
+              minPrice: data.ticketTypes?.[0]?.price || 0,
+              maxPrice: data.ticketTypes?.reduce((max, ticket) => 
+                Math.max(max, ticket.price || 0), 0) || 0,
+              avgPrice: data.ticketTypes?.length > 0 ? 
+                data.ticketTypes.reduce((sum, ticket) => sum + (ticket.price || 0), 0) / data.ticketTypes.length : 0,
+              currency: data.ticketTypes?.[0]?.currency || 'EUR',
+              totalAvailableTickets: data.ticketTypes?.reduce((sum, ticket) => 
+                sum + (ticket.quantity || 0), 0) || 0,
+              ticketTypes: data.ticketTypes || []
+            },
+            
+            // Propriétés adaptées pour la compatibilité avec l'interface existante
+            id: data._id,
+            title: data.name,
+            date: data.startDate,
+            price: data.pricing?.minPrice || data.ticketTypes?.[0]?.price || null,
+            image: data.images?.[0] || null,
+            availableTickets: data.pricing?.totalAvailableTickets || data.remainingCapacity,
+            featured: data.featured || false,
+            
+            // Informations sur l'organisateur formatées
+            organizerName: data.organizer ? 
+              `${data.organizer.firstName} ${data.organizer.lastName}` : 
+              'Non spécifié',
+            organizerEmail: data.organizer?.email,
+            
+            // Informations sur la localisation formatées
+            venue: data.location?.name,
+            address: data.location?.address ? 
+              `${data.location.address.street}, ${data.location.address.city} ${data.location.address.postalCode}` : 
+              null,
+            city: data.location?.address?.city,
+            postalCode: data.location?.address?.postalCode,
+            country: data.location?.address?.country,
+          };
+
+          dispatch(setCurrentEvent(eventData));
+          return eventData;
+        }
+      } catch (apiError) {
+        console.log('API non disponible, utilisation des données mock:', apiError.message);
+      }
+      
+      // Fallback vers les données mock
       const event = await eventsAPI.fetchEventById(eventId);
-      return event;
+      if (!event) {
+        throw new Error('Événement non trouvé');
+      }
+      
+      // Ajouter des données fictives supplémentaires spécifiques au concert de Chris Brown
+      const enhancedEvent = {
+        ...event,
+        longDescription: event.description + "\n\nVivez une expérience musicale exceptionnelle avec Chris Brown dans le cadre de sa tournée mondiale 'Breezy Bowl XX'. Ce concert anniversaire célèbre 20 ans de carrière avec des performances époustouflantes, des chorégraphies spectaculaires et des invités de prestige comme Summer Walker et Bryson Tiller.",
+        
+        duration: "3h30 avec entracte",
+        
+        // Programme adapté pour le concert de Chris Brown
+        agenda: [
+          { 
+            time: "18:30", 
+            title: "Ouverture des portes", 
+            description: "Accueil du public et vérification des billets" 
+          },
+          { 
+            time: "19:30", 
+            title: "Première partie - Bryson Tiller", 
+            description: "Performance de 45 minutes de l'artiste R&B" 
+          },
+          { 
+            time: "20:30", 
+            title: "Summer Walker", 
+            description: "Set de 45 minutes de la sensation R&B" 
+          },
+          { 
+            time: "21:30", 
+            title: "Entracte", 
+            description: "Pause de 30 minutes - Bar ouvert" 
+          },
+          { 
+            time: "22:00", 
+            title: "Chris Brown - Breezy Bowl XX", 
+            description: "Concert principal de 90 minutes avec les plus grands hits" 
+          },
+          { 
+            time: "23:30", 
+            title: "Rappel et final", 
+            description: "Dernières performances et remerciements" 
+          },
+        ],
+        
+        // Artistes et intervenants pour le concert
+        speakers: [
+          { 
+            name: "Chris Brown", 
+            title: "Artiste Principal", 
+            company: "RCA Records", 
+            photo: "https://i.pravatar.cc/150?img=10" 
+          },
+          { 
+            name: "Summer Walker", 
+            title: "Artiste Invitée", 
+            company: "LVRN/Interscope", 
+            photo: "https://i.pravatar.cc/150?img=11" 
+          },
+          { 
+            name: "Bryson Tiller", 
+            title: "Artiste Invité", 
+            company: "RCA Records", 
+            photo: "https://i.pravatar.cc/150?img=12" 
+          },
+        ],
+        
+        // Tags spécifiques au concert R&B
+        tags: ["R&B", "Pop", "Hip-Hop", "Concert", "Chris Brown", "Tournée", "Anniversaire"],
+        
+        // Informations pratiques pour le concert
+        requirements: [
+          "Billet obligatoire - contrôle à l'entrée",
+          "Interdiction des appareils photo/vidéo professionnels",
+          "Vestiaire payant disponible",
+          "Bar et restauration sur place",
+          "Accès PMR - places réservées"
+        ],
+        
+        // Informations supplémentaires pour le concert
+        practicalInfo: {
+          parking: "Parking payant à proximité - 15€",
+          catering: "Bar et snacks disponibles",
+          accessibility: "Accès PMR avec places dédiées",
+          weather: "Événement en intérieur",
+          security: "Contrôle de sécurité obligatoire",
+          ageLimit: "Tout âge - mineurs accompagnés"
+        },
+        
+        // Structure de pricing complète pour le concert
+        pricing: {
+          minPrice: 25,
+          maxPrice: 150,
+          avgPrice: 75,
+          currency: "EUR",
+          totalAvailableTickets: 100,
+          ticketTypes: [
+            {
+              _id: "std_ticket_001",
+              name: "Standard",
+              description: "Billet d'accès standard - Placement libre debout",
+              price: 25,
+              currency: "EUR",
+              quantity: 40,
+              initialQuantity: 50,
+              maxPerPurchase: 10,
+              isAvailable: true,
+              saleStartDate: new Date().toISOString(),
+              saleEndDate: event.endDate || new Date(Date.now() + 86400000).toISOString(),
+              benefits: ["Accès au concert", "Accès aux bars"]
+            },
+            {
+              _id: "premium_ticket_001",
+              name: "Premium",
+              description: "Places assises numérotées - Vue optimale",
+              price: 75,
+              currency: "EUR",
+              quantity: 30,
+              initialQuantity: 40,
+              maxPerPurchase: 8,
+              isAvailable: true,
+              saleStartDate: new Date().toISOString(),
+              saleEndDate: event.endDate || new Date(Date.now() + 86400000).toISOString(),
+              benefits: ["Places assises", "Accès prioritaire", "Programme collector"]
+            },
+            {
+              _id: "vip_ticket_001",
+              name: "VIP Experience",
+              description: "Expérience VIP complète avec meet & greet",
+              price: 150,
+              currency: "EUR",
+              quantity: 30,
+              initialQuantity: 10,
+              maxPerPurchase: 4,
+              isAvailable: true,
+              saleStartDate: new Date().toISOString(),
+              saleEndDate: event.endDate || new Date(Date.now() + 86400000).toISOString(),
+              benefits: [
+                "Places VIP front stage",
+                "Meet & greet avec Chris Brown",
+                "Photo souvenir",
+                "Merchandise exclusif",
+                "Accès lounge VIP",
+                "Boissons incluses"
+              ]
+            }
+          ]
+        },
+        
+        // Types de billets avec structure enrichie
+        ticketTypes: [
+          {
+            name: "Standard",
+            description: "Billet d'accès standard - Placement libre debout",
+            price: 25,
+            available: true,
+            quantity: 40,
+            maxPerPurchase: 10,
+            benefits: ["Accès au concert", "Accès aux bars"]
+          },
+          {
+            name: "Premium",
+            description: "Places assises numérotées - Vue optimale",
+            price: 75,
+            available: true,
+            quantity: 30,
+            maxPerPurchase: 8,
+            benefits: ["Places assises", "Accès prioritaire", "Programme collector"]
+          },
+          {
+            name: "VIP Experience",
+            description: "Expérience VIP complète avec meet & greet",
+            price: 150,
+            available: true,
+            quantity: 30,
+            maxPerPurchase: 4,
+            benefits: [
+              "Places VIP front stage",
+              "Meet & greet avec Chris Brown",
+              "Photo souvenir",
+              "Merchandise exclusif",
+              "Accès lounge VIP",
+              "Boissons incluses"
+            ]
+          }
+        ],
+      };
+      
+      dispatch(setCurrentEvent(enhancedEvent));
+      return enhancedEvent;
+      
     } catch (error) {
-      const errorMessage = error.message || 'Événement non trouvé';
+      console.error('Erreur lors de la récupération de l\'événement:', error);
+      
+      const errorMessage = error.message || 'Erreur lors de la récupération de l\'événement';
       dispatch(showSnackbar({
         message: errorMessage,
         severity: 'error'
       }));
+      
       return rejectWithValue(errorMessage);
     }
   }
 );
+
+// Thunk pour créer une réservation
+export const createReservation = createAsyncThunk(
+  'events/createReservation',
+  async (reservationData, { dispatch, rejectWithValue }) => {
+    try {
+      const response = await fetch('http://localhost:3000/api/reservations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        },
+        body: JSON.stringify(reservationData),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Vous devez être connecté pour effectuer une réservation');
+        } else if (response.status === 400) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Données de réservation invalides');
+        } else if (response.status === 404) {
+          throw new Error('Événement non trouvé');
+        } else if (response.status === 409) {
+          throw new Error('Plus de places disponibles pour cet événement');
+        } else {
+          throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+      }
+
+      const responseData = await response.json();
+      console.log('Réponse de réservation:', responseData);
+
+      // Extraire le numéro de réservation depuis la réponse
+      const reservationNumber = responseData.data?.reservationNumber || responseData.summary?.reservationNumber;
+      
+      if (reservationNumber) {
+        // Sauvegarder le numéro de confirmation dans le store
+        dispatch(setConfirmationNumber(reservationNumber));
+      }
+
+      // Afficher un message de succès
+      dispatch(showSnackbar({
+        message: 'Réservation créée avec succès !',
+        severity: 'success'
+      }));
+
+      // Retourner toutes les données de la réservation
+      return {
+        reservationNumber,
+        reservationData: responseData.data,
+        summary: responseData.summary,
+        tickets: responseData.data?.tickets || [],
+        totalAmount: responseData.data?.totalAmount || responseData.summary?.totalAmount,
+      };
+      
+    } catch (error) {
+      console.error('Erreur lors de la création de la réservation:', error);
+      
+      const errorMessage = error.message || 'Erreur lors de la création de la réservation';
+      dispatch(showSnackbar({
+        message: errorMessage,
+        severity: 'error'
+      }));
+      
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+

@@ -35,8 +35,7 @@ const Header = ({ isAuthenticated: propIsAuthenticated }) => {
   useEffect(() => {
     console.log('Header - État d\'authentification:', {
       isAuthenticated,
-      user,
-      propIsAuthenticated
+      
     });
   }, [isAuthenticated, user, propIsAuthenticated]);
 
@@ -201,7 +200,7 @@ const Header = ({ isAuthenticated: propIsAuthenticated }) => {
               </>
             )}
 
-            <Box sx={{ ml: 2 }}>
+            {/* <Box sx={{ ml: 2 }}>
               <Badge
                 badgeContent={cartCount}
                 color="primary"
@@ -215,7 +214,7 @@ const Header = ({ isAuthenticated: propIsAuthenticated }) => {
                   }} 
                 />
               </Badge>
-            </Box>
+            </Box> */}
           </Box>
         </Toolbar>
       </Container>

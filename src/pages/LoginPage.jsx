@@ -221,12 +221,12 @@ const LoginPage = () => {
                 label="Espace Client"
                 sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}
               />
-              <Tab
+              {/* <Tab
                 icon={<AdminPanelSettings />}
                 iconPosition="start"
                 label="Administration"
                 sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}
-              />
+              /> */}
             </Tabs>
           </Box>          {/* Form */}
           <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>

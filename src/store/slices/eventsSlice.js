@@ -15,6 +15,7 @@ const initialState = {
   error: null,
   hasNextPage: true,
   currentPage: 1,
+  confirmationNumber: null, // Added for booking confirmation
 };
 
 const eventsSlice = createSlice({
@@ -49,6 +50,14 @@ const eventsSlice = createSlice({
     setCurrentEvent: (state, action) => {
       state.currentEvent = action.payload;
     },
+    fetchEventByIdSuccess: (state, action) => {
+      state.currentEvent = action.payload;
+      state.isLoading = false;
+      state.error = null;
+    },
+    clearCurrentEvent: (state) => {
+      state.currentEvent = null;
+    },
     updateFilters: (state, action) => {
       state.filters = { ...state.filters, ...action.payload };
       state.currentPage = 1; // Reset to first page when filters change
@@ -69,6 +78,25 @@ const eventsSlice = createSlice({
     deleteEvent: (state, action) => {
       state.events = state.events.filter(event => event.id !== action.payload);
     },
+    setConfirmationNumber: (state, action) => {
+      state.confirmationNumber = action.payload;
+    },
+    clearConfirmationNumber: (state) => {
+      state.confirmationNumber = null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase('events/fetchEventById/fulfilled', (state, action) => {
+        state.currentEvent = action.payload;
+        state.isLoading = false;
+        state.error = null;
+      })
+      .addCase('events/fetchEventById/rejected', (state, action) => {
+        state.currentEvent = null;
+        state.isLoading = false;
+        state.error = action.payload;
+      });
   },
 });
 
@@ -78,11 +106,15 @@ export const {
   fetchEventsFailure,
   fetchFeaturedEventsSuccess,
   setCurrentEvent,
+  fetchEventByIdSuccess,
+  clearCurrentEvent,
   updateFilters,
   clearFilters,
   addEvent,
   updateEvent,
   deleteEvent,
+  setConfirmationNumber,
+  clearConfirmationNumber,
 } = eventsSlice.actions;
 
 export default eventsSlice.reducer;

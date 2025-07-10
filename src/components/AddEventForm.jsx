@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import TextField from '@mui/material/TextField';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
@@ -12,7 +12,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
 import Alert from '@mui/material/Alert';
 
-const AddEventForm = ({ onClose }) => {
+const AddEventForm = ({ onClose, eventData: eventDataProp }) => {
   const initialEventData = {
     // Informations de l'événement
     title: '',
@@ -43,15 +43,59 @@ const AddEventForm = ({ onClose }) => {
     saleEndDate: '',
     createBasicTicket: true // Option pour créer ou non le ticket automatique
   };
-  const [eventData, setEventData] = useState(initialEventData);
-  ;
 
+  const [eventData, setEventData] = useState(initialEventData);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
   // **NOUVEAUX ÉTATS pour la génération de description**
   const [generatingDescription, setGeneratingDescription] = useState(false);
   const [descriptionError, setDescriptionError] = useState('');
+
+  // **NOUVEAU : Déterminer si on est en mode édition**
+  const isEditing = !!eventDataProp?._id;
+
+  // **NOUVEAU : useEffect pour pré-remplir le formulaire en mode édition**
+  useEffect(() => {
+    if (eventDataProp) {
+      // Convertir les données de l'API vers le format du formulaire
+      const startDate = new Date(eventDataProp.startDate);
+      const endDate = new Date(eventDataProp.endDate);
+      
+      const formattedEventData = {
+        _id: eventDataProp._id,
+        title: eventDataProp.name || '',
+        description: eventDataProp.description || '',
+        date: startDate.toISOString().split('T')[0], // Format YYYY-MM-DD
+        endDate: endDate.toISOString().split('T')[0],
+        time: startDate.toTimeString().slice(0, 5), // Format HH:MM
+        location: {
+          name: eventDataProp.location?.name || '',
+          address: {
+            street: eventDataProp.location?.address?.street || '',
+            city: eventDataProp.location?.address?.city || '',
+            postalCode: eventDataProp.location?.address?.postalCode || '',
+            country: eventDataProp.location?.address?.country || 'France',
+          },
+        },
+        category: eventDataProp.category || '',
+        totalCapacity: eventDataProp.totalCapacity?.toString() || '',
+        
+        // Pour l'édition, on désactive la création automatique de ticket
+        defaultTicketPrice: 25,
+        defaultTicketQuantity: 100,
+        currency: 'EUR',
+        maxPerPurchase: 10,
+        saleStartDate: '',
+        saleEndDate: '',
+        createBasicTicket: false // Désactivé en mode édition
+      };
+      
+      setEventData(formattedEventData);
+    } else {
+      setEventData(initialEventData);
+    }
+  }, [eventDataProp]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -133,8 +177,8 @@ const AddEventForm = ({ onClose }) => {
       category: eventData.category,
       totalCapacity: parseInt(eventData.totalCapacity),
       
-      // Configuration du ticket type automatique (si activé)
-      ...(eventData.createBasicTicket && {
+      // Configuration du ticket type automatique (si activé et pas en mode édition)
+      ...(!isEditing && eventData.createBasicTicket && {
         defaultTicketPrice: parseFloat(eventData.defaultTicketPrice),
         defaultTicketQuantity: parseInt(eventData.defaultTicketQuantity),
         currency: eventData.currency,
@@ -147,6 +191,7 @@ const AddEventForm = ({ onClose }) => {
     return formattedData;
   };
 
+  // **FONCTION MODIFIÉE pour gérer création ET édition**
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -155,9 +200,14 @@ const AddEventForm = ({ onClose }) => {
     try {
       const formattedData = formatEventDataForAPI();
       
-      // Appel à l'API avec l'URL complète
-      const response = await fetch('http://localhost:3000/api/events', {
-        method: 'POST',
+      // **MODIFICATION : URL et méthode selon le mode**
+      const url = isEditing 
+        ? `http://localhost:3000/api/events/${eventData._id}`
+        : 'http://localhost:3000/api/events';
+      const method = isEditing ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
@@ -167,13 +217,23 @@ const AddEventForm = ({ onClose }) => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Erreur lors de la création de l\'événement');
+        throw new Error(errorData.message || `Erreur lors de ${isEditing ? 'la modification' : 'la création'} de l'événement`);
       }
 
       const result = await response.json();
-      alert(`Événement "${result.name}" créé avec succès ! ${eventData.createBasicTicket ? 'Un ticket "Standard" a été automatiquement ajouté.' : ''}`);
+      
+      // **MODIFICATION : Message selon le mode**
+      const successMessage = isEditing 
+        ? `Événement "${result.name}" modifié avec succès !`
+        : `Événement "${result.name}" créé avec succès ! ${eventData.createBasicTicket ? 'Un ticket "Standard" a été automatiquement ajouté.' : ''}`;
+      
+      alert(successMessage);
       onClose();
-      setEventData(initialEventData);
+      
+      // Réinitialiser seulement si pas en mode édition
+      if (!isEditing) {
+        setEventData(initialEventData);
+      }
       
     } catch (error) {
       setError(error.message);
@@ -185,7 +245,10 @@ const AddEventForm = ({ onClose }) => {
   return (
     <div className="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <h3 className="text-2xl font-bold text-blue-600 mb-6 text-center">Ajouter un événement</h3>
+        {/* **MODIFICATION : Titre selon le mode** */}
+        <h3 className="text-2xl font-bold text-blue-600 mb-6 text-center">
+          {isEditing ? 'Modifier l\'événement' : 'Ajouter un événement'}
+        </h3>
         
         {error && (
           <Alert severity="error" className="mb-4">
@@ -374,91 +437,105 @@ const AddEventForm = ({ onClose }) => {
             />
           </Box>
 
-          <Divider className="my-6" />
-
-          {/* Configuration du ticket automatique */}
-          <Typography variant="h6" className="text-gray-700 font-semibold">
-            🎫 Configuration du ticket Standard (automatique)
-          </Typography>
-          
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={eventData.createBasicTicket}
-                onChange={handleChange}
-                name="createBasicTicket"
-                color="primary"
-              />
-            }
-            label="Créer automatiquement un ticket 'Standard' pour cet événement"
-          />
-
-          {eventData.createBasicTicket && (
-            <Box className="bg-blue-50 p-4 rounded-lg space-y-4">
-              <Typography variant="body2" className="text-gray-600 mb-3">
-                Un ticket type "Standard" sera automatiquement créé avec les paramètres suivants :
+          {/* **MODIFICATION : Configuration du ticket automatique seulement en mode création** */}
+          {!isEditing && (
+            <>
+              <Divider className="my-6" />
+              
+              <Typography variant="h6" className="text-gray-700 font-semibold">
+                🎫 Configuration du ticket Standard (automatique)
               </Typography>
               
-              <Box className="flex gap-4">
-                <TextField
-                  label="Prix du ticket Standard"
-                  name="defaultTicketPrice"
-                  type="number"
-                  value={eventData.defaultTicketPrice}
-                  onChange={handleChange}
-                  variant="outlined"
-                  inputProps={{ min: 0, step: 0.01 }}
-                  InputProps={{
-                    endAdornment: <span className="text-gray-500">€</span>
-                  }}
-                />
-                
-                <TextField
-                  label="Quantité disponible"
-                  name="defaultTicketQuantity"
-                  type="number"
-                  value={eventData.defaultTicketQuantity}
-                  onChange={handleChange}
-                  variant="outlined"
-                  inputProps={{ min: 1 }}
-                />
-              </Box>
-
-              <Box className="flex gap-4">
-                <FormControl>
-                  <InputLabel id="currency-label">Devise</InputLabel>
-                  <Select
-                    labelId="currency-label"
-                    name="currency"
-                    value={eventData.currency}
-                    label="Devise"
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={eventData.createBasicTicket}
                     onChange={handleChange}
-                    style={{ minWidth: 120 }}
-                  >
-                    <MenuItem value="EUR">EUR (€)</MenuItem>
-                    <MenuItem value="USD">USD ($)</MenuItem>
-                    <MenuItem value="GBP">GBP (£)</MenuItem>
-                  </Select>
-                </FormControl>
+                    name="createBasicTicket"
+                    color="primary"
+                  />
+                }
+                label="Créer automatiquement un ticket 'Standard' pour cet événement"
+              />
 
-                <TextField
-                  label="Max par achat"
-                  name="maxPerPurchase"
-                  type="number"
-                  value={eventData.maxPerPurchase}
-                  onChange={handleChange}
-                  variant="outlined"
-                  inputProps={{ min: 1, max: 50 }}
-                />
-              </Box>
+              {eventData.createBasicTicket && (
+                <Box className="bg-blue-50 p-4 rounded-lg space-y-4">
+                  <Typography variant="body2" className="text-gray-600 mb-3">
+                    Un ticket type "Standard" sera automatiquement créé avec les paramètres suivants :
+                  </Typography>
+                  
+                  <Box className="flex gap-4">
+                    <TextField
+                      label="Prix du ticket Standard"
+                      name="defaultTicketPrice"
+                      type="number"
+                      value={eventData.defaultTicketPrice}
+                      onChange={handleChange}
+                      variant="outlined"
+                      inputProps={{ min: 0, step: 0.01 }}
+                      InputProps={{
+                        endAdornment: <span className="text-gray-500">€</span>
+                      }}
+                    />
+                    
+                    <TextField
+                      label="Quantité disponible"
+                      name="defaultTicketQuantity"
+                      type="number"
+                      value={eventData.defaultTicketQuantity}
+                      onChange={handleChange}
+                      variant="outlined"
+                      inputProps={{ min: 1 }}
+                    />
+                  </Box>
 
-              <Typography variant="body2" className="text-green-600 mt-2">
-                ✨ Vous pourrez ajouter d'autres types de billets (VIP, Étudiant, etc.) après la création de l'événement.
-              </Typography>
-            </Box>
+                  <Box className="flex gap-4">
+                    <FormControl>
+                      <InputLabel id="currency-label">Devise</InputLabel>
+                      <Select
+                        labelId="currency-label"
+                        name="currency"
+                        value={eventData.currency}
+                        label="Devise"
+                        onChange={handleChange}
+                        style={{ minWidth: 120 }}
+                      >
+                        <MenuItem value="EUR">EUR (€)</MenuItem>
+                        <MenuItem value="USD">USD ($)</MenuItem>
+                        <MenuItem value="GBP">GBP (£)</MenuItem>
+                      </Select>
+                    </FormControl>
+
+                    <TextField
+                      label="Max par achat"
+                      name="maxPerPurchase"
+                      type="number"
+                      value={eventData.maxPerPurchase}
+                      onChange={handleChange}
+                      variant="outlined"
+                      inputProps={{ min: 1, max: 50 }}
+                    />
+                  </Box>
+
+                  <Typography variant="body2" className="text-green-600 mt-2">
+                    ✨ Vous pourrez ajouter d'autres types de billets (VIP, Étudiant, etc.) après la création de l'événement.
+                  </Typography>
+                </Box>
+              )}
+            </>
           )}
 
-          {/* Boutons d'action */}
+          {/* **MODIFICATION : Message informatif en mode édition** */}
+          {isEditing && (
+            <>
+              <Divider className="my-6" />
+              <Alert severity="info">
+                💡 Pour modifier les billets associés à cet événement, rendez-vous dans la section "Gestion des billets" après avoir sauvegardé vos modifications.
+              </Alert>
+            </>
+          )}
+
+          {/* **MODIFICATION : Boutons d'action selon le mode** */}
           <div className="flex justify-end gap-3 pt-6">
             <Button 
               variant="outlined" 
@@ -474,7 +551,10 @@ const AddEventForm = ({ onClose }) => {
               color="primary"
               disabled={loading}
             >
-              {loading ? 'Création...' : 'Créer l\'événement'}
+              {loading 
+                ? (isEditing ? 'Modification...' : 'Création...') 
+                : (isEditing ? 'Modifier l\'événement' : 'Créer l\'événement')
+              }
             </Button>
           </div>
         </form>

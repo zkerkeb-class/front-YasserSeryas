@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Card, CardMedia, CardContent, Chip } from '@mui/material';
 const categoryImages = {
   concert: [
@@ -45,6 +46,7 @@ function getPrice(event) {
 }
 
 const EventList = ({ filters }) => {
+  const navigate = useNavigate();
   const [events, setEvents] = useState([]);
 
   useEffect(() => {
@@ -64,7 +66,7 @@ const EventList = ({ filters }) => {
       params.append('minPrice_lte', filters.priceRange[1]);
     }
 
-    fetch(`http://localhost:3000/api/events/?${params.toString()}`)
+    fetch(`http://localhost:3000/api/events/published?${params.toString()}`)
       .then(res => res.json())
       .then(data => setEvents(data))
       .catch(() => setEvents([]));
@@ -78,7 +80,21 @@ const EventList = ({ filters }) => {
         </Typography>
       ) : (
         events.map(event => (
-          <Card key={event._id} sx={{ display: 'flex', alignItems: 'stretch', mb: 2 }} onClick={() => window.location.href = `/events/${event._id}`}>
+          <Card 
+            key={event._id} 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'stretch', 
+              mb: 2,
+              cursor: 'pointer',
+              '&:hover': {
+                boxShadow: 3,
+                transform: 'translateY(-2px)',
+                transition: 'all 0.2s ease-in-out',
+              },
+            }} 
+            onClick={() => navigate(`/events/${event._id}`)}
+          >
             <CardMedia
               component="img"
               sx={{ width: 220, height: 140, objectFit: 'cover' }}

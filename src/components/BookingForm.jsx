@@ -1,22 +1,19 @@
 import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { createReservation } from '../store/thunks/eventsThunks';
 import {
   Box,
   Paper,
   Typography,
   TextField,
   Button,
-  Grid,
   MenuItem,
-  Divider,
   Card,
   CardContent,
-  InputAdornment,
   Alert,
+  CircularProgress,
 } from '@mui/material';
 import {
-  Person,
-  Email,
-  Phone,
   Payment,
   CreditCard,
   AccountBalance,
@@ -24,16 +21,16 @@ import {
   CheckCircle,
 } from '@mui/icons-material';
 
-const BookingForm = ({ setStep }) => {
+const BookingForm = ({ eventId, ticketTypeId, setStep,price }) => {
+  const dispatch = useDispatch();
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    paymentMethod: ''
+    paymentMethod: '',
+    quantity: 1, // Par défaut 1 billet
   });
 
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState('');
 
   const paymentMethods = [
     { value: 'card', label: 'Carte bancaire', icon: <CreditCard /> },
@@ -56,31 +53,70 @@ const BookingForm = ({ setStep }) => {
         [name]: ''
       });
     }
+    
+    // Clear API error
+    if (apiError) {
+      setApiError('');
+    }
   };
 
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.firstName.trim()) newErrors.firstName = 'Le prénom est requis';
-    if (!formData.lastName.trim()) newErrors.lastName = 'Le nom est requis';
-    if (!formData.email.trim()) newErrors.email = 'L\'email est requis';
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email invalide';
-    if (!formData.phone.trim()) newErrors.phone = 'Le téléphone est requis';
-    if (!formData.paymentMethod) newErrors.paymentMethod = 'Veuillez choisir un mode de paiement';
+    if (!formData.paymentMethod) {
+      newErrors.paymentMethod = 'Veuillez choisir un mode de paiement';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+  const handleReservation = async () => {
+    try {
+      const reservationData = {
+        eventId: eventId,
+        ticketTypeId: ticketTypeId,
+        quantity: formData.quantity || 1, // Par défaut 1 billet
+        // paymentMethod: formData.paymentMethod
+      };
 
-  const handleSubmit = (e) => {
+      // Utiliser le thunk Redux pour créer la réservation
+      const result = await dispatch(createReservation(reservationData)).unwrap();
+      
+      console.log('Réservation créée avec succès:', result);
+      
+      // Rediriger vers l'étape suivante ou afficher un message de succès
+      if (setStep) {
+        setStep('success');
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Erreur lors de la création de la réservation:', error);
+      throw error;
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
-      setStep('summary');
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    setLoading(true);
+    setApiError('');
+
+    try {
+      await handleReservation();
+    } catch (error) {
+      setApiError(error.message || 'Une erreur est survenue lors de la réservation');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Box sx={{ maxWidth: '800px', mx: 'auto', p: 2 }}>
+    <Box sx={{ maxWidth: '600px', mx: 'auto', p: 2 }}>
       <Paper 
         elevation={0}
         sx={{ 
@@ -108,134 +144,23 @@ const BookingForm = ({ setStep }) => {
             textAlign: 'center'
           }}
         >
-          Veuillez remplir vos informations pour confirmer votre réservation
+          Choisissez votre mode de paiement pour confirmer votre réservation
         </Typography>
 
-        <form onSubmit={handleSubmit}>
-          {/* Informations personnelles */}
-          <Card 
-            elevation={0}
+        {apiError && (
+          <Alert 
+            severity="error" 
             sx={{ 
               mb: 3,
-              border: '1px solid #e2e8f0',
-              borderRadius: 2
+              borderRadius: '10px',
             }}
           >
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                <Person sx={{ color: '#3b82f6', mr: 1 }} />
-                <Typography variant="h6" sx={{ fontWeight: 600, color: '#1e293b' }}>
-                  Vos informations
-                </Typography>
-              </Box>
-              
-              <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    name="firstName"
-                    label="Prénom"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    error={!!errors.firstName}
-                    helperText={errors.firstName}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Person sx={{ color: '#64748b' }} />
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: '10px',
-                      }
-                    }}
-                    required
-                  />
-                </Grid>
-                
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    name="lastName"
-                    label="Nom de famille"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    error={!!errors.lastName}
-                    helperText={errors.lastName}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Person sx={{ color: '#64748b' }} />
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: '10px',
-                      }
-                    }}
-                    required
-                  />
-                </Grid>
-                
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    name="email"
-                    label="Adresse email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    error={!!errors.email}
-                    helperText={errors.email}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Email sx={{ color: '#64748b' }} />
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: '10px',
-                      }
-                    }}
-                    required
-                  />
-                </Grid>
-                
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    name="phone"
-                    label="Numéro de téléphone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    error={!!errors.phone}
-                    helperText={errors.phone}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Phone sx={{ color: '#64748b' }} />
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: '10px',
-                      }
-                    }}
-                    required
-                  />
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
+            {apiError}
+          </Alert>
+        )}
 
-          {/* Paiement */}
+        <form onSubmit={handleSubmit}>
+          {/* Mode de paiement */}
           <Card 
             elevation={0}
             sx={{ 
@@ -244,54 +169,94 @@ const BookingForm = ({ setStep }) => {
               borderRadius: 2
             }}
           >
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                <Payment sx={{ color: '#3b82f6', mr: 1 }} />
-                <Typography variant="h6" sx={{ fontWeight: 600, color: '#1e293b' }}>
-                  Mode de paiement
-                </Typography>
-              </Box>
-              
-              <TextField
-                fullWidth
-                select
-                name="paymentMethod"
-                label="Choisissez votre mode de paiement"
-                value={formData.paymentMethod}
-                onChange={handleChange}
-                error={!!errors.paymentMethod}
-                helperText={errors.paymentMethod}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '10px',
-                  }
-                }}
-                required
-              >
-                {paymentMethods.map((method) => (
-                  <MenuItem key={method.value} value={method.value}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {method.icon}
-                      {method.label}
-                    </Box>
-                  </MenuItem>
-                ))}
-              </TextField>
+           <CardContent sx={{ p: 3 }}>
+  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+    <Payment sx={{ color: '#3b82f6', mr: 1 }} />
+    <Typography variant="h6" sx={{ fontWeight: 600, color: '#1e293b' }}>
+      Mode de paiement
+    </Typography>
+  </Box>
+  
+  {/* Champ Quantité */}
+  <TextField
+    fullWidth
+    type="number"
+    name="quantity"
+    label="Quantité de billets"
+    value={formData.quantity}
+    onChange={handleChange}
+    error={!!errors.quantity}
+    helperText={errors.quantity}
+    disabled={loading}
+    
+    inputProps={{
+      min: 1,
+      max: 50
+    }}
+    sx={{
+      mb: 2,
+      '& .MuiOutlinedInput-root': {
+        borderRadius: '10px',
+      }
+    }}
+    required
+  />
+  
+  {/* Champ Mode de paiement */}
+  <TextField
+    fullWidth
+    select
+    name="paymentMethod"
+    label="Choisissez votre mode de paiement"
+    value={formData.paymentMethod}
+    onChange={handleChange}
+    error={!!errors.paymentMethod}
+    helperText={errors.paymentMethod}
+    disabled={loading}
+    sx={{
+      '& .MuiOutlinedInput-root': {
+        borderRadius: '10px',
+      }
+    }}
+    required
+  >
+    {paymentMethods.map((method) => (
+      <MenuItem key={method.value} value={method.value}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {method.icon}
+          {method.label}
+        </Box>
+      </MenuItem>
+    ))}
+  </TextField>
 
-              {formData.paymentMethod && (
-                <Alert 
-                  severity="info" 
-                  sx={{ 
-                    mt: 2,
-                    borderRadius: '10px',
-                    backgroundColor: '#f0f9ff',
-                    border: '1px solid #bfdbfe'
-                  }}
-                >
-                  Vous serez redirigé vers la page de paiement sécurisée après confirmation.
-                </Alert>
-              )}
-            </CardContent>
+  {formData.paymentMethod && !loading && (
+    <Alert 
+      severity="info" 
+      sx={{ 
+        mt: 2,
+        borderRadius: '10px',
+        backgroundColor: '#f0f9ff',
+        border: '1px solid #bfdbfe'
+      }}
+    >
+      Vous serez redirigé vers la page de paiement sécurisée après confirmation.
+    </Alert>
+  )}
+  {price && (
+    <Box sx={{ mt: 2, mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+        Total à payer :
+      </Typography>
+      <Typography variant="h6" sx={{ color: '#3b82f6', fontWeight: 700 }}>
+        {typeof price === 'number'
+          ? `${(price * (formData.quantity || 1)).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}`
+          : '--'}
+      </Typography>
+    </Box>
+  )}
+</CardContent>
+
           </Card>
 
           {/* Bouton de soumission */}
@@ -300,7 +265,8 @@ const BookingForm = ({ setStep }) => {
               type="submit"
               variant="contained"
               size="large"
-              startIcon={<CheckCircle />}
+              disabled={loading || !formData.paymentMethod}
+              startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <CheckCircle />}
               sx={{
                 background: 'linear-gradient(45deg, #3b82f6, #8b5cf6)',
                 borderRadius: '25px',
@@ -311,13 +277,18 @@ const BookingForm = ({ setStep }) => {
                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                 '&:hover': {
                   background: 'linear-gradient(45deg, #2563eb, #7c3aed)',
-                  transform: 'translateY(-2px)',
+                  transform: loading ? 'none' : 'translateY(-2px)',
                   boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+                },
+                '&:disabled': {
+                  background: '#94a3b8',
+                  transform: 'none',
                 },
                 transition: 'all 0.3s ease',
               }}
             >
-              Confirmer la réservation
+
+              {loading ? 'Traitement en cours...' : 'Confirmer la réservation'}
             </Button>
           </Box>
         </form>

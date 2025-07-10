@@ -216,7 +216,27 @@ const FeaturedEvents = () => {
                 </Box>
               </CardContent>
 
-              <CardActions sx={{ p: 3, pt: 0 }}>                <Button
+              <CardActions sx={{ p: 3, pt: 0, display: 'flex', gap: 1 }}>
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  size="large"
+                  onClick={() => navigate(`/events/${event.id}`)}
+                  sx={{
+                    py: 1.5,
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    borderColor: '#3b82f6',
+                    color: '#3b82f6',
+                    '&:hover': {
+                      borderColor: '#2563eb',
+                      backgroundColor: 'rgba(59, 130, 246, 0.04)',
+                    },
+                  }}
+                >
+                  Voir détails
+                </Button>
+                <Button
                   variant="contained"
                   fullWidth
                   size="large"
@@ -234,7 +254,7 @@ const FeaturedEvents = () => {
                     transition: 'all 0.2s ease',
                   }}
                 >
-                  Réserver maintenant
+                  Réserver
                 </Button>
               </CardActions>
             </Card>
