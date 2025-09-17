@@ -16,6 +16,9 @@ import {
   Card,
   CardContent,
   Chip,
+  Divider,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -33,6 +36,8 @@ const BookingPage = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   const { currentEvent, isLoading, error, confirmationNumber } = useSelector((state) => state.events);
   const { isAuthenticated } = useSelector((state) => state.auth);
@@ -104,6 +109,18 @@ const BookingPage = () => {
     }).format(price);
   };
 
+  const formatDate = (date) => {
+    if (!date) return '';
+    return new Date(date).toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   const handleTicketSelection = (ticketType) => {
     setSelectedTicketType(ticketType);
     setStep('summary');
@@ -111,17 +128,48 @@ const BookingPage = () => {
 
   const renderTicketSelection = () => (
     <Box>
-      <Typography variant="h4" gutterBottom sx={{ textAlign: 'center', mb: 4 }}>
+      <Typography 
+        variant={isMobile ? "h5" : "h4"} 
+        gutterBottom 
+        sx={{ 
+          textAlign: 'center', 
+          mb: { xs: 2, md: 4 },
+          fontSize: { xs: '1.25rem', md: '2rem' }
+        }}
+      >
         Choisissez votre type de billet
       </Typography>
       
       {/* Informations sur l'événement */}
-      <Paper sx={{ p: 3, mb: 4, bgcolor: 'grey.50' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+      <Paper sx={{ 
+        p: { xs: 2, md: 3 }, 
+        mb: { xs: 2, md: 4 }, 
+        bgcolor: 'grey.50' 
+      }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: { xs: 1, md: 2 }, 
+          mb: 2,
+          flexDirection: { xs: 'column', sm: 'row' },
+          textAlign: { xs: 'center', sm: 'left' }
+        }}>
           <EventNote color="primary" />
-          <Typography variant="h6">{currentEvent.name}</Typography>
+          <Typography 
+            variant="h6"
+            sx={{ fontSize: { xs: '1.1rem', md: '1.25rem' } }}
+          >
+            {currentEvent.name}
+          </Typography>
         </Box>
-        <Typography variant="body2" color="text.secondary">
+        <Typography 
+          variant="body2" 
+          color="text.secondary"
+          sx={{ 
+            fontSize: { xs: '0.85rem', md: '0.875rem' },
+            textAlign: { xs: 'center', sm: 'left' }
+          }}
+        >
           {new Date(currentEvent.startDate).toLocaleDateString('fr-FR', {
             weekday: 'long',
             year: 'numeric',
@@ -131,13 +179,20 @@ const BookingPage = () => {
             minute: '2-digit',
           })}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography 
+          variant="body2" 
+          color="text.secondary"
+          sx={{ 
+            fontSize: { xs: '0.85rem', md: '0.875rem' },
+            textAlign: { xs: 'center', sm: 'left' }
+          }}
+        >
           {currentEvent.location?.name}, {currentEvent.location?.address?.city}
         </Typography>
       </Paper>
 
       {/* Types de billets */}
-      <Grid container spacing={3}>
+      <Grid container spacing={{ xs: 2, md: 3 }}>
         {getTicketTypes().map((ticket, index) => (
           <Grid item xs={12} md={6} key={ticket._id || index}>
             <Card 
@@ -146,54 +201,105 @@ const BookingPage = () => {
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                  transform: { xs: 'none', md: 'translateY(-4px)' },
+                  boxShadow: { xs: 2, md: '0 8px 25px rgba(0,0,0,0.15)' },
                 }
               }}
               onClick={() => handleTicketSelection(ticket)}
             >
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                  <Typography variant="h6" gutterBottom>
+              <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'flex-start', 
+                  mb: 2,
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  gap: { xs: 1, sm: 0 }
+                }}>
+                  <Typography 
+                    variant="h6" 
+                    gutterBottom
+                    sx={{ fontSize: { xs: '1.1rem', md: '1.25rem' } }}
+                  >
                     {ticket.name}
                   </Typography>
                   <Chip 
                     label={`${ticket.quantity || ticket.initialQuantity || 0} disponibles`}
                     color="primary"
-                    size="small"
+                    size={isMobile ? "small" : "medium"}
                   />
                 </Box>
                 
-                <Typography variant="body2" color="text.secondary" paragraph>
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary" 
+                  paragraph
+                  sx={{ fontSize: { xs: '0.85rem', md: '0.875rem' } }}
+                >
                   {ticket.description}
                 </Typography>
                 
                 {ticket.benefits && ticket.benefits.length > 0 && (
                   <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" gutterBottom>
+                    <Typography 
+                      variant="subtitle2" 
+                      gutterBottom
+                      sx={{ fontSize: { xs: '0.9rem', md: '0.875rem' } }}
+                    >
                       Inclus :
                     </Typography>
-                    {ticket.benefits.slice(0, 3).map((benefit, idx) => (
-                      <Typography key={idx} variant="body2" sx={{ color: 'success.main', fontSize: '0.85rem' }}>
+                    {ticket.benefits.slice(0, isMobile ? 2 : 3).map((benefit, idx) => (
+                      <Typography 
+                        key={idx} 
+                        variant="body2" 
+                        sx={{ 
+                          color: 'success.main', 
+                          fontSize: { xs: '0.8rem', md: '0.85rem' }
+                        }}
+                      >
                         • {benefit}
                       </Typography>
                     ))}
-                    {ticket.benefits.length > 3 && (
-                      <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.85rem' }}>
-                        +{ticket.benefits.length - 3} autres avantages...
+                    {ticket.benefits.length > (isMobile ? 2 : 3) && (
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: 'text.secondary', 
+                          fontSize: { xs: '0.8rem', md: '0.85rem' }
+                        }}
+                      >
+                        +{ticket.benefits.length - (isMobile ? 2 : 3)} autres avantages...
                       </Typography>
                     )}
                   </Box>
                 )}
                 
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
-                  <Typography variant="h5" color="primary" fontWeight="bold">
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  mt: 'auto',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  gap: { xs: 1, sm: 0 }
+                }}>
+                  <Typography 
+                    variant={isMobile ? "h6" : "h5"} 
+                    color="primary" 
+                    fontWeight="bold"
+                    sx={{ fontSize: { xs: '1.1rem', md: '1.5rem' } }}
+                  >
                     {formatPrice(ticket.price)}
                   </Typography>
                   <Button 
                     variant="contained" 
                     startIcon={<ConfirmationNumber />}
                     disabled={!ticket.isAvailable || (ticket.quantity || 0) === 0}
+                    size={isMobile ? "small" : "medium"}
+                    fullWidth={isMobile}
+                    sx={{ 
+                      minWidth: { xs: '100%', sm: 'auto' },
+                      mt: { xs: 1, sm: 0 }
+                    }}
                   >
                     {(ticket.quantity || 0) > 0 ? 'Choisir' : 'Épuisé'}
                   </Button>
@@ -207,62 +313,214 @@ const BookingPage = () => {
   );
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth={isMobile ? "sm" : "lg"} sx={{ py: { xs: 2, md: 4 }, px: { xs: 1, sm: 2 } }}>
       {/* Header avec navigation */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: { xs: 'flex-start', sm: 'center' }, 
+        flexDirection: { xs: 'column', sm: 'row' },
+        mb: { xs: 2, md: 4 },
+        gap: { xs: 1, sm: 0 }
+      }}>
         <Button
           startIcon={<ArrowBack />}
           onClick={() => navigate(`/events/${eventId}`)}
-          sx={{ mr: 2 }}
+          sx={{ 
+            mr: { sm: 2 },
+            mb: { xs: 1, sm: 0 },
+            alignSelf: { xs: 'flex-start', sm: 'auto' }
+          }}
+          size={isMobile ? "small" : "medium"}
         >
-          Retour à l'événement
+          {isMobile ? "Retour" : "Retour à l'événement"}
         </Button>
-        <Typography variant="h4" sx={{ fontWeight: 600 }}>
-          Finaliser ma réservation
+        <Typography 
+          variant={isMobile ? "h5" : "h4"} 
+          sx={{ 
+            fontWeight: 600,
+            fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2rem' }
+          }}
+        >
+          {isMobile ? "Ma réservation" : "Finaliser ma réservation"}
         </Typography>
       </Box>
 
       {/* Stepper */}
-      <Paper sx={{ p: 3, mb: 4 }}>
-        <Stepper activeStep={activeStep} alternativeLabel>
+      <Paper sx={{ p: { xs: 2, md: 3 }, mb: { xs: 2, md: 4 } }}>
+        <Stepper 
+          activeStep={activeStep} 
+          alternativeLabel={!isMobile}
+          orientation={isMobile ? "vertical" : "horizontal"}
+        >
           {steps.map((label) => (
             <Step key={label}>
-              <StepLabel>{label}</StepLabel>
+              <StepLabel>
+                <Typography variant={isMobile ? "body2" : "body1"}>
+                  {label}
+                </Typography>
+              </StepLabel>
             </Step>
           ))}
         </Stepper>
       </Paper>
 
       {/* Contenu selon l'étape */}
-      {step === 'form' && renderTicketSelection()}
-      
-      {step === 'summary' && selectedTicketType && (
-        <BookingForm 
-          eventId={currentEvent._id}
-          ticketTypeId={selectedTicketType._id || selectedTicketType.id}
-          selectedTicket={selectedTicketType}
-          currentEvent={currentEvent}
-          setStep={setStep}
-          price={currentEvent.price}
-        />
-      )}
-      
-      {step === 'confirmation' && (
-        <BookingSummary 
-          eventId={currentEvent._id}
-          selectedTicket={selectedTicketType}
-          currentEvent={currentEvent}
-          setStep={setStep} 
-        />
-      )}
-      
-      {step === 'success' && (
-        <BookingConfirmation 
-          currentEvent={currentEvent}
-          selectedTicket={selectedTicketType}
-          confirmationNumber={confirmationNumber}
-        />
-      )}
+      <Grid container spacing={{ xs: 2, md: 3 }}>
+        <Grid item xs={12} md={8}>
+          <Paper sx={{ p: { xs: 2, md: 3 }, mb: { xs: 2, md: 0 } }}>
+            {step === 'form' && renderTicketSelection()}
+            
+            {step === 'summary' && selectedTicketType && (
+              <BookingForm 
+                eventId={currentEvent._id}
+                ticketTypeId={selectedTicketType._id || selectedTicketType.id}
+                selectedTicket={selectedTicketType}
+                currentEvent={currentEvent}
+                setStep={setStep}
+                // Utiliser le prix réel du type de billet sélectionné
+                price={selectedTicketType.price}
+              />
+            )}
+            
+            {step === 'confirmation' && selectedTicketType && (
+              <BookingSummary 
+                selectedTicket={selectedTicketType}
+                currentEvent={currentEvent}
+                setStep={setStep}
+                quantity={1}
+              />
+            )}
+            
+            {step === 'success' && (
+              <BookingConfirmation 
+                currentEvent={currentEvent}
+                selectedTicket={selectedTicketType}
+                confirmationNumber={confirmationNumber}
+              />
+            )}
+          </Paper>
+        </Grid>
+        
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ 
+            p: { xs: 2, md: 3 }, 
+            position: { md: 'sticky' },
+            top: { md: 24 },
+            height: 'fit-content'
+          }}>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                mb: 2,
+                fontSize: { xs: '1.1rem', md: '1.25rem' }
+              }}
+            >
+              Récapitulatif
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            
+            {/* Informations événement */}
+            <Box sx={{ mb: 3 }}>
+              <Typography 
+                variant="subtitle1" 
+                sx={{ 
+                  fontWeight: 600, 
+                  mb: 1,
+                  fontSize: { xs: '0.95rem', md: '1rem' }
+                }}
+              >
+                {currentEvent?.name || currentEvent?.title}
+              </Typography>
+              <Typography 
+                variant="body2" 
+                color="text.secondary"
+                sx={{ fontSize: { xs: '0.85rem', md: '0.875rem' } }}
+              >
+                📅 {formatDate(currentEvent?.startDate)}
+              </Typography>
+              <Typography 
+                variant="body2" 
+                color="text.secondary"
+                sx={{ fontSize: { xs: '0.85rem', md: '0.875rem' } }}
+              >
+                📍 {currentEvent?.location?.name}
+              </Typography>
+            </Box>
+
+            {/* Récapitulatif commande */}
+            {selectedTicketType && (
+              <Box>
+                <Typography 
+                  variant="subtitle2" 
+                  sx={{ 
+                    fontWeight: 600, 
+                    mb: 1,
+                    fontSize: { xs: '0.95rem', md: '1rem' }
+                  }}
+                >
+                  Votre commande
+                </Typography>
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  mb: 1,
+                  flexWrap: { xs: 'wrap', sm: 'nowrap' }
+                }}>
+                  <Typography 
+                    variant="body2"
+                    sx={{ 
+                      fontSize: { xs: '0.85rem', md: '0.875rem' },
+                      flex: 1,
+                      minWidth: { xs: '100%', sm: 'auto' }
+                    }}
+                  >
+                    {selectedTicketType.name} × 1
+                  </Typography>
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      fontWeight: 600,
+                      fontSize: { xs: '0.85rem', md: '0.875rem' },
+                      mt: { xs: 0.5, sm: 0 }
+                    }}
+                  >
+                    {formatPrice(selectedTicketType.price)}
+                  </Typography>
+                </Box>
+                <Divider sx={{ my: 1 }} />
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  flexWrap: { xs: 'wrap', sm: 'nowrap' }
+                }}>
+                  <Typography 
+                    variant="subtitle1" 
+                    sx={{ 
+                      fontWeight: 600,
+                      fontSize: { xs: '1rem', md: '1.1rem' },
+                      flex: 1,
+                      minWidth: { xs: '100%', sm: 'auto' }
+                    }}
+                  >
+                    Total
+                  </Typography>
+                  <Typography 
+                    variant="subtitle1" 
+                    sx={{ 
+                      fontWeight: 600, 
+                      color: 'primary.main',
+                      fontSize: { xs: '1rem', md: '1.1rem' },
+                      mt: { xs: 0.5, sm: 0 }
+                    }}
+                  >
+                    {formatPrice(selectedTicketType.price)}
+                  </Typography>
+                </Box>
+              </Box>
+            )}
+          </Paper>
+        </Grid>
+      </Grid>
     </Container>
   );
 };

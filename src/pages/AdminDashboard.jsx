@@ -29,6 +29,8 @@ import {
   Edit,
   MoreVert, // Icône pour le menu de statut
   Circle, // Pour les indicateurs de statut
+  Settings,
+  ConfirmationNumber,
 } from '@mui/icons-material';
 import AddEventForm from '../components/AddEventForm';
 
@@ -450,10 +452,11 @@ const AdminDashboard = () => {
                             </Box>
                             
                             {/* **SECTION MODIFIÉE : Boutons d'action** */}
-                            <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                               <Button
                                 variant="outlined"
                                 startIcon={<Edit />}
+                                size="small"
                                 onClick={() => handleEditEvent(event._id)}
                                 sx={{
                                   borderColor: '#3b82f6',
@@ -466,8 +469,39 @@ const AdminDashboard = () => {
                               >
                                 Modifier
                               </Button>
-                              
-                              {/* **NOUVEAU : Bouton de modification du statut** */}
+                              <Button
+                                variant="outlined"
+                                startIcon={<ConfirmationNumber />}
+                                size="small"
+                                onClick={() => window.location.href = `/events/${event._id}/ticket-types/manage`}
+                                sx={{
+                                  borderColor: '#8b5cf6',
+                                  color: '#8b5cf6',
+                                  '&:hover': {
+                                    backgroundColor: '#f5f3ff',
+                                    borderColor: '#7c3aed',
+                                  },
+                                }}
+                              >
+                                Billets
+                              </Button>
+                              <Button
+                                variant="outlined"
+                                startIcon={<Settings />}
+                                size="small"
+                                onClick={() => window.location.href = `/events/${event._id}`}
+                                sx={{
+                                  borderColor: '#0ea5e9',
+                                  color: '#0ea5e9',
+                                  '&:hover': {
+                                    backgroundColor: '#f0f9ff',
+                                    borderColor: '#0284c7',
+                                  },
+                                }}
+                              >
+                                Voir
+                              </Button>
+                              {/* Bouton statut */}
                               <IconButton
                                 onClick={(e) => handleStatusMenuOpen(e, event)}
                                 disabled={loadingStatusUpdate}
@@ -479,9 +513,11 @@ const AdminDashboard = () => {
                                     backgroundColor: '#f8fafc',
                                     borderColor: '#d1d5db',
                                   },
+                                  height: 36,
+                                  width: 36,
                                 }}
                               >
-                                <MoreVert />
+                                <MoreVert fontSize="small" />
                               </IconButton>
                             </Box>
                           </Box>

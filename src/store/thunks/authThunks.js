@@ -86,7 +86,8 @@ export const authAPI = {
         } else if (response.status === 409) {
           throw new Error("Un compte existe déjà avec cette adresse email");
         } else if (response.status === 404) {
-          throw new Error("Service d'inscription non disponible");
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Service d'inscription non disponible");
         } else {
           throw new Error(`Erreur HTTP: ${response.status}`);
         }

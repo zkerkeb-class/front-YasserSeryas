@@ -22,6 +22,9 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import OAuthCallbackPage from "./pages/OAuthCallbackPage";
+import TicketsListPage from "./pages/TicketsListPage";
+import TicketDetailPage from "./pages/TicketDetailPage";
+import TicketTypeManagePage from "./pages/TicketTypeManagePage";
 import theme from "./theme";
 import "./App.css";
 
@@ -83,6 +86,9 @@ function AppContent() {
               <Route path="/events/:eventId" element={<EventDetailPage />} />
               <Route path="/booking" element={<BookingPage />} />
               <Route path="/booking/:eventId" element={<BookingPage />} />
+              <Route path="/tickets" element={<TicketsListPage />} />
+              <Route path="/tickets/:id" element={<TicketDetailPage />} />
+              <Route path="/events/:eventId/ticket-types/manage" element={<TicketTypeManagePage />} />
               <Route
                 path="/login"
                 element={

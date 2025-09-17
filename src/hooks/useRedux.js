@@ -22,3 +22,11 @@ export const useBooking = () => {
 export const useUI = () => {
   return useAppSelector(state => state.ui);
 };
+
+export const useTickets = () => {
+  return useAppSelector(state => state.tickets);
+};
+
+export const useTicketTypes = () => {
+  return useAppSelector(state => state.ticketTypes);
+};

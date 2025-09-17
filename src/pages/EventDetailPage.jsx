@@ -40,6 +40,7 @@ import {
   MusicNote,
   Star,
   LocalActivity,
+  Settings,
 } from '@mui/icons-material';
 import { fetchEventById } from '../store/thunks/eventsThunks';
 import { clearCurrentEvent } from '../store/slices/eventsSlice';
@@ -50,7 +51,7 @@ const EventDetailPage = () => {
   const dispatch = useDispatch();
   
   const { currentEvent, isLoading, error } = useSelector((state) => state.events);
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
   
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -177,6 +178,15 @@ const EventDetailPage = () => {
       return currentEvent.pricing.ticketTypes;
     }
     return currentEvent?.ticketTypes || [];
+  };
+
+  const canManageTicketTypes = () => {
+    if (!user) return false;
+    // Autoriser admin ou organisateur de l'événement
+    const roles = ['administrateur', 'admin', 'organisateur', 'organizer'];
+    const roleOk = roles.includes(user.role);
+    const isOrganizer = currentEvent?.organizer && (currentEvent.organizer._id === user.id || currentEvent.organizer.id === user.id || currentEvent.organizer === user.id);
+    return roleOk || isOrganizer;
   };
 
   if (isLoading) {
@@ -440,12 +450,25 @@ const EventDetailPage = () => {
           </Paper>
 
           {/* Types de billets */}
+          {/* Section types de billets */}
           {ticketTypes.length > 0 && (
             <Paper sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <ConfirmationNumber color="primary" />
-                Billets disponibles
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0 }}>
+                  <ConfirmationNumber color="primary" />
+                  Billets disponibles
+                </Typography>
+                {canManageTicketTypes() && (
+                  <Button
+                    size="small"
+                    startIcon={<Settings />}
+                    variant="outlined"
+                    onClick={() => navigate(`/events/${eventId}/ticket-types/manage`)}
+                  >
+                    Gérer
+                  </Button>
+                )}
+              </Box>
               <Grid container spacing={2}>
                 {ticketTypes.map((ticket, index) => (
                   <Grid item xs={12} sm={6} key={ticket._id || index}>
@@ -482,6 +505,23 @@ const EventDetailPage = () => {
                   </Grid>
                 ))}
               </Grid>
+            </Paper>
+          )}
+
+          {/* Si aucun type et utilisateur peut gérer -> call to action */}
+          {ticketTypes.length === 0 && canManageTicketTypes() && (
+            <Paper sx={{ p: 3, mb: 3, borderStyle: 'dashed', textAlign: 'center' }}>
+              <Typography variant="h6" gutterBottom>Aucun type de billet configuré</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Créez vos premiers types de billets (VIP, Standard, Early Bird...).
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<Settings />}
+                onClick={() => navigate(`/events/${eventId}/ticket-types/manage`)}
+              >
+                Configurer les types de billets
+              </Button>
             </Paper>
           )}
         </Grid>
